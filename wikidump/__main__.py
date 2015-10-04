@@ -94,7 +94,7 @@ def open_xml_file(path):
     return f
 
 
-def compressor_7z(file_path, *args, **kwargs):
+def compressor_7z(file_path):
     p = subprocess.Popen(
         ['7z', 'a', '-si', file_path],
         stdin=subprocess.PIPE,
@@ -128,7 +128,7 @@ def main():
 
         basename = input_file_path.name
 
-        with compressor_7z(str(args.output_dir_path/basename), 'wt', encoding='utf-8') as out:
+        with compressor_7z(str(args.output_dir_path/basename)) as out:
             dumper.serialize(page_extractor(dump), out)
 
 
