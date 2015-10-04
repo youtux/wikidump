@@ -22,14 +22,13 @@ def references(source):
 @functools.lru_cache(maxsize=10)
 @utils.listify
 def sections(source):
-    # TODO: add a whitespace after re-match equals
     pattern = regex.compile(
         r'''^
-            (?P<equals>=+)              # Match the equals
+            (?P<equals>=+)              # Match the equals, greedy
             (?P<section_name>           # <section_name>:
-                [^=].+?                 # Anything that does not start with '='
+                .+?                     # Text inside, non-greedy
             )
-            (?P=equals)                 # Re-match the equals
+            (?P=equals)\s*              # Re-match the equals
             $
         ''', regex.VERBOSE | regex.MULTILINE)
     for match in pattern.finditer(source):
