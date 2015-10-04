@@ -1,6 +1,4 @@
 import functools
-import os
-import subprocess
 
 
 # https://github.com/shazow/unstdlib.py/blob/master/unstdlib/standard/list_.py#L149
@@ -42,14 +40,3 @@ def iter_with_prev(iterable):
     for el in iterable:
         yield last, el
         last = el
-
-def open_7z(filename):
-    inside_filename, _ = os.path.splitext(
-        os.path.basename(filename)
-    )
-    args = ['/usr/local/bin/7z', 'e', '-so', filename, inside_filename]
-    proc = subprocess.Popen(args,
-                       stdout=subprocess.PIPE,
-                       stderr=subprocess.DEVNULL,
-                       )
-    return proc.stdout
