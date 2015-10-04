@@ -42,16 +42,16 @@ def remove_comments(source):
 
 def revisions_extractor(revisions):
     prev_references = set()
-    for revision in revisions:
+    for mw_revision in revisions:
         dot()
-        text = remove_comments(revision.text or '')
+        text = remove_comments(mw_revision.text or '')
         references = extractors.references(text)
         sections = extractors.sections(text)
         bibliography = "".join(extractors.bibliography(text))
 
         yield Revision(
-            id=revision.id,
-            timestamp=revision.timestamp.to_json(),
+            id=mw_revision.id,
+            timestamp=mw_revision.timestamp.to_json(),
             references_diff=references_diff(prev_references, references),
             sections=sections,
             bibliography=bibliography,
@@ -76,17 +76,15 @@ def references_diff(prev_references, references):
 
 
 def page_extractor(dump):
-    for page in dump:
-        log("Processing", page)
+    for mw_page in dump:
+        log("Processing", mw_page)
 
-        my_page = Page(
-            id=page.id,
-            title=page.title,
-            namespace=page.namespace,
-            revisions=revisions_extractor(page),
+        yield Page(
+            id=mw_page.id,
+            title=mw_page.title,
+            namespace=mw_page.namespace,
+            revisions=revisions_extractor(mw_page),
         )
-
-        yield my_page
 
 
 def open_xml_file(path):
