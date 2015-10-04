@@ -64,12 +64,12 @@ def references_diff(prev_references, references):
     # prev_references = [ref.text for ref in prev_references]
     # references = [ref.text for ref in references]
 
-    added_references = set(references) - set(prev_references)
-    removed_references = set(prev_references) - set(references)
+    added = set(references) - set(prev_references)
+    removed = set(prev_references) - set(references)
 
     references_diffs = (
-        [Revision.ReferenceDiff('added', ref.text) for ref in added_references]
-        + [Revision.ReferenceDiff('removed', ref.text) for ref in removed_references]
+        [Revision.ReferenceDiff('added', ref.text) for ref in added]
+        + [Revision.ReferenceDiff('removed', ref.text) for ref in removed]
     )
 
     return references_diffs
