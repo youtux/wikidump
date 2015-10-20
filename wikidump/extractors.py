@@ -3,7 +3,7 @@ import functools
 
 import regex
 
-from . import utils
+from . import utils, languages
 
 Reference = collections.namedtuple('Reference', 'text')
 Section = collections.namedtuple('Section', 'name level')
@@ -40,15 +40,17 @@ def sections(source):
 
 @functools.lru_cache(maxsize=10)
 @utils.listify
-def bibliography(source):
+def bibliography(source, language):
     # Exit immediately if there is no section named 'bibliography'
-    if 'bibliography' not in (sect.name.lower() for sect in sections(source)):
+    bibliography_t = languages.bibliography[language]
+    if bibliography_t not in (sect.name.lower() for sect in sections(source)):
         return None
 
     pattern = regex.compile(
         r'''
             (?P<equals>=+)              # Match the equals
-                \s*(?i)bibliography\s*  # Match the 'bibliography' (case-ins)
+                \s*(?i){bibliography_t}
+                \s*                     # Match the 'bibliography' (case-ins)
             (?P=equals)                 # Re-match the equals
             \s*\n                       # Consume any whitespace and the \n
             (?P<text>(?s)
@@ -56,7 +58,7 @@ def bibliography(source):
             )
             (?:=+|$)                    # Finish when you find a new section
                                         # or the end of document
-        ''', regex.VERBOSE)
+        '''.format(bibliography_t=bibliography_t), regex.VERBOSE)
 
     for match in pattern.finditer(source):
         yield match.group('text')

@@ -9,7 +9,7 @@ import mwxml
 import pathlib
 import regex
 
-from . import dumper, extractors, utils
+from . import dumper, extractors, utils, languages
 
 Citation = collections.namedtuple("Citation", "type id")
 
@@ -40,14 +40,14 @@ def remove_comments(source):
     return pattern.sub('', source)
 
 
-def revisions_extractor(revisions):
+def revisions_extractor(revisions, language):
     prev_references = set()
     for mw_revision in revisions:
         dot()
         text = remove_comments(mw_revision.text or '')
         references = extractors.references(text)
         sections = extractors.sections(text)
-        bibliography = "".join(extractors.bibliography(text))
+        bibliography = "".join(extractors.bibliography(text, language))
 
         yield Revision(
             id=mw_revision.id,
@@ -75,7 +75,7 @@ def references_diff(prev_references, references):
     return references_diffs
 
 
-def page_extractor(dump):
+def page_extractor(dump, language):
     for mw_page in dump:
         log("Processing", mw_page)
 
@@ -83,7 +83,7 @@ def page_extractor(dump):
             id=mw_page.id,
             title=mw_page.title,
             namespace=mw_page.namespace,
-            revisions=revisions_extractor(mw_page),
+            revisions=revisions_extractor(mw_page, language=language),
         )
 
 
@@ -117,6 +117,8 @@ def main():
                         help='XML Wikidump file to parse')
     parser.add_argument('output_dir_path', metavar='OUTPUT_DIR',
                         type=pathlib.Path, help='XML output directory')
+    parser.add_argument('-l', '--language', choices=languages.supported,
+                        required=True, help='The language of the dump')
 
     args = parser.parse_args()
 
