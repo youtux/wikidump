@@ -121,7 +121,7 @@ def create_path(path):
 def main():
     parser = argparse.ArgumentParser(description='Wikidump extractor.')
     parser.add_argument('files', metavar='FILE', type=pathlib.Path, nargs='+',
-                        help='XML Wikidump file to parse')
+                        help='XML Wikidump file to parse. Accept only 7z.')
     parser.add_argument('output_dir_path', metavar='OUTPUT_DIR',
                         type=pathlib.Path, help='XML output directory')
     parser.add_argument('-l', '--language', choices=languages.supported,
