@@ -118,19 +118,39 @@ def create_path(path):
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Wikidump extractor.')
-    parser.add_argument('files', metavar='FILE', type=pathlib.Path, nargs='+',
-                        help='XML Wikidump file to parse. Accept only 7z.')
-    parser.add_argument('output_dir_path', metavar='OUTPUT_DIR',
-                        type=pathlib.Path, help='XML output directory')
-    parser.add_argument('-l', '--language', choices=languages.supported,
-                        required=True, help='The language of the dump')
-    parser.add_argument('--output-compression', choices={None, '7z'},
-                        required=False, default=None,
-                        help='Output compression')
+def get_args():
+    parser = argparse.ArgumentParser(
+        prog='wikidump',
+        description='Wikidump features extractor.',
+    )
+    parser.add_argument('files',
+        metavar='FILE',
+        type=pathlib.Path,
+        nargs='+',
+        help='XML Wikidump file to parse. It accepts only 7z.'
+    )
+    parser.add_argument('output_dir_path',
+        metavar='OUTPUT_DIR',
+        type=pathlib.Path,
+        help='XML output directory.',
+    )
+    parser.add_argument('-l', '--language',
+        choices=languages.supported,
+        required=True,
+        help='The language of the dump.',
+    )
+    parser.add_argument('--output-compression',
+        choices={None, '7z'},
+        required=False,
+        default=None,
+        help='Output compression format.',
+    )
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    args = get_args()
 
     args.output_dir_path.mkdir(parents=True, exist_ok=True)
 
