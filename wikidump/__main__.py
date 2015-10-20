@@ -106,6 +106,13 @@ def compressor_7z(file_path):
     return utf8writer(p.stdin)
 
 
+def output_writer(path, compression):
+    if compression == '7z':
+        return compressor_7z(path)
+    else:
+        return open(path, 'wt', encoding='utf-8')
+
+
 def create_path(path):
     path = pathlib.Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -119,6 +126,9 @@ def main():
                         type=pathlib.Path, help='XML output directory')
     parser.add_argument('-l', '--language', choices=languages.supported,
                         required=True, help='The language of the dump')
+    parser.add_argument('--output-compression', choices={None, '7z'},
+                        required=False, default=None,
+                        help='Output compression')
 
     args = parser.parse_args()
 
@@ -130,8 +140,9 @@ def main():
 
         basename = input_file_path.name
 
-        with compressor_7z(str(args.output_dir_path/basename)) as out:
-            dumper.serialize(page_extractor(dump), out)
+        with output_writer(str(args.output_dir_path/basename),
+                           compression=args.output_compression) as out:
+            dumper.serialize(page_extractor(dump, language=args.language), out)
 
 
 if __name__ == '__main__':
