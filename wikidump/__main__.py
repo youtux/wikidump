@@ -36,7 +36,7 @@ def log(*args):
 
 
 def remove_comments(source):
-    pattern = regex.compile(r'<!--(.*?)-->', regex.MULTILINE)
+    pattern = regex.compile(r'<!--(.*?)-->', regex.MULTILINE | regex.DOTALL)
     return pattern.sub('', source)
 
 
