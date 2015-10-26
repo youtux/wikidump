@@ -9,6 +9,11 @@ Reference = collections.namedtuple('Reference', 'text')
 Section = collections.namedtuple('Section', 'name level')
 
 
+def _pattern_or(words):
+    words_joined = '|'.join(words)
+
+    return r'(?:{})'.format(words_joined)
+
 @functools.lru_cache(maxsize=10)
 @utils.listify
 def references(source):
@@ -62,3 +67,25 @@ def bibliography(source, language):
 
     for match in pattern.finditer(source):
         yield match.group('text')
+
+
+@functools.lru_cache(maxsize=10)
+@utils.listify
+def citation(source, language):
+    citation_synonyms = languages.citation[language]
+
+    citation_synonyms_pattern = _pattern_or(citation_synonyms)
+
+    pattern = regex.compile(
+        r'''
+            \{\{
+            \s*
+            %s
+            \s+
+            (?:(?s).*?)
+            \}\}
+        ''' % (citation_synonyms_pattern,), regex.VERBOSE
+    )
+
+    for match in pattern.finditer(source):
+        yield match.group(0)
