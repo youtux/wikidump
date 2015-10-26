@@ -9,7 +9,7 @@ import mwxml
 import pathlib
 import regex
 
-from . import dumper, extractors, utils, languages
+from . import dumper, extractors, utils, languages, mwcites_extractors
 
 Citation = collections.namedtuple("Citation", "type id")
 
@@ -18,6 +18,23 @@ Revision = collections.namedtuple("Revision",
     "id timestamp references_diff sections bibliography")
 Revision.Section = collections.namedtuple('Section', "name level")
 Revision.ReferenceDiff = collections.namedtuple("ReferenceDiff", "action text")
+# IdentifierStats = collections.namedtuple("IdentifierStats",
+#     "type id appearances")
+# Appearance = collections.namedtuple("Appearance",
+#     "raw in_tag_ref in_template_citation in_tag_ref_and_template_citation")
+
+
+def DefaultStatsDict():
+    return {
+        'raw': 0,
+        'in_tag_ref': 0,
+        'in_template_citation': 0,
+        'in_tag_ref_and_template_citation': 0,
+    }
+
+global_stats = {
+    'identifiers': {},
+}
 
 
 def dot(num=None):
@@ -48,6 +65,28 @@ def revisions_extractor(revisions, language):
         references = extractors.references(text)
         sections = extractors.sections(text)
         bibliography = "".join(extractors.bibliography(text, language))
+        citations = extractors.citation(text, language)
+        dois = list(mwcites_extractors.doi.extract(text))
+
+        for doi in dois:
+            in_tag_ref = any(doi.id in ref.text for ref in references)
+            in_template_citation = any(doi.id in c for c in citations)
+
+            # appearance = Appearance(
+            #     raw=not in_tag_ref and not in_template_citation,
+            #     in_tag_ref=in_tag_ref,
+            #     in_template_citation=in_template_citation,
+            # )
+            doi_stats = global_stats['identifiers'].setdefault(
+                doi, DefaultStatsDict())
+            if not in_tag_ref and not in_template_citation:
+                doi_stats['raw'] += 1
+            if in_tag_ref and not in_template_citation:
+                doi_stats['in_tag_ref'] += 1
+            if in_template_citation and not in_tag_ref:
+                doi_stats['in_template_citation'] += 1
+            if in_tag_ref and in_template_citation:
+                doi_stats['in_tag_ref_and_template_citation'] += 1
 
         yield Revision(
             id=mw_revision.id,
@@ -162,7 +201,11 @@ def main():
 
         with output_writer(str(args.output_dir_path/basename),
                            compression=args.output_compression) as out:
-            dumper.serialize(page_extractor(dump, language=args.language), out)
+            dumper.serialize(
+                pages=page_extractor(dump, language=args.language),
+                stats=global_stats,
+                output_handler=out,
+            )
 
 
 if __name__ == '__main__':

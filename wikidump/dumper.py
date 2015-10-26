@@ -30,12 +30,22 @@ xml_template_str = '''
         </revisions>
     </page>
     % endfor
+    <stats>
+        <identifiers>
+        % for identifier, counts in stats['identifiers'].items():
+            <identifier type="${identifier.type}" id="${identifier.id}">
+                % for where, count in counts.items():
+                <appearance where="${where}" count="${count}" />
+                % endfor
+        % endfor
+        </identifiers>
+    </stats>
 </root>
 '''
 
 
-def serialize(pages, output_handler):
+def serialize(pages, stats, output_handler):
     xml_template = mako.template.Template(xml_template_str)
-    ctx = mako.runtime.Context(output_handler, pages=pages)
+    ctx = mako.runtime.Context(output_handler, pages=pages, stats=stats)
 
     xml_template.render_context(ctx)
