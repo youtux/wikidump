@@ -79,6 +79,10 @@ def revisions_extractor(revisions, language, stats):
         pub_identifiers = extractors.pub_identifiers(text)
 
         for pub_identifier in pub_identifiers:
+            # TODO: improve the performance of these searches:
+            # it's much faster to use
+            #   pub_identifier.id in "".join(references)
+            # but less readable and more vulnerable
             in_tag_ref = any(pub_identifier.id in ref for ref in references)
             in_template = any(pub_identifier.id in t for t in templates)
 
