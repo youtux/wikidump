@@ -94,3 +94,17 @@ def citation(source, language):
 
     for match in pattern.finditer(source):
         yield match.group(0)
+
+
+@functools.lru_cache(maxsize=10)
+@utils.listify
+def templates(source):
+    pattern = regex.compile(
+        r'''
+            \{\{
+            (?P<content>.*?)
+            \}\}
+        ''', regex.VERBOSE | regex.MULTILINE)
+
+    for match in pattern.finditer(source):
+        yield match.group(0)
