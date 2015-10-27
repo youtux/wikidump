@@ -76,7 +76,7 @@ def bibliography(source, language):
 
 @functools.lru_cache(maxsize=10)
 @utils.listify
-def citation(source, language):
+def citations(source, language):
     citation_synonyms = languages.citation[language]
 
     citation_synonyms_pattern = _pattern_or(citation_synonyms)
