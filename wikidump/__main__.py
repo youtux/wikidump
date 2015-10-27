@@ -67,27 +67,22 @@ def revisions_extractor(revisions, language):
         sections = extractors.sections(text)
         bibliography = "".join(extractors.bibliography(text, language))
         templates = extractors.templates(text)
-        dois = list(mwcites_extractors.doi.extract(text))
+        pub_identifiers = extractors.pub_identifiers(text)
 
-        for doi in dois:
-            in_tag_ref = any(doi.id in ref for ref in references)
-            in_template = any(doi.id in t for t in templates)
+        for pub_identifier in pub_identifiers:
+            in_tag_ref = any(pub_identifier.id in ref for ref in references)
+            in_template = any(pub_identifier.id in t for t in templates)
 
-            # appearance = Appearance(
-            #     raw=not in_tag_ref and not in_template_citation,
-            #     in_tag_ref=in_tag_ref,
-            #     in_template_citation=in_template_citation,
-            # )
-            doi_stats = global_stats['identifiers'].setdefault(
-                doi, DefaultStatsDict())
+            identifier_stats = stats['identifiers'].setdefault(
+                pub_identifier, IdentifierStatsDict())
             if not in_tag_ref and not in_template:
-                doi_stats['raw'] += 1
+                identifier_stats['raw'] += 1
             if in_tag_ref and not in_template:
-                doi_stats['in_tag_ref'] += 1
+                identifier_stats['in_tag_ref'] += 1
             if in_template and not in_tag_ref:
-                doi_stats['in_template'] += 1
+                identifier_stats['in_template'] += 1
             if in_tag_ref and in_template:
-                doi_stats['in_tag_ref_and_template'] += 1
+                identifier_stats['in_tag_ref_and_template'] += 1
 
         yield Revision(
             id=mw_revision.id,
