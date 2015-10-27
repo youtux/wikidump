@@ -6,7 +6,6 @@ pages_revisions_template = '''
     % for page in pages:
     <page>
         <title>${page.title}</title>
-        <ns>${page.namespace}</ns>
         <id>${page.id}</id>
         <revisions>
             % for revision in page.revisions:
