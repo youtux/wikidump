@@ -3,7 +3,7 @@ import functools
 
 import regex
 
-from . import utils, languages
+from . import utils, languages, mwcites_extractors
 
 # Reference = collections.namedtuple('Reference', 'text')
 Section = collections.namedtuple('Section', 'name level')
