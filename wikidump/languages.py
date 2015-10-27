@@ -6,5 +6,5 @@ bibliography = {
 }
 
 citation = {
-    'en': {'Citation', 'cite'},
+    'en': {'Citation', 'cite', 'vcite'},
 }
