@@ -33,6 +33,12 @@ pages_revisions_template = '''
 
 stats_template = '''
 <stats>
+    <performance>
+        <start_time>${stats['performance']['start_time']}</start_time>
+        <end_time>${stats['performance']['end_time']}</start_time>
+        <revisions_analyzed>${stats['performance']['revisions_analyzed']}</revisions_analyzed>
+        <pages_analyzed>${stats['performance']['pages_analyzed']}</pages_analyzed>
+    </performance>
     <identifiers>
     % for identifier, counts in stats['identifiers'].items():
         <identifier type="${identifier.type}" id="${identifier.id}">
