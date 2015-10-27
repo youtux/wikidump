@@ -1,9 +1,7 @@
 import mako.runtime
 import mako.template
 
-# TODO: create 2 separate files
-
-xml_template_str = '''
+pages_revisions_template = '''
 <root>
     % for page in pages:
     <page>
@@ -31,23 +29,34 @@ xml_template_str = '''
         </revisions>
     </page>
     % endfor
-    <stats>
-        <identifiers>
-        % for identifier, counts in stats['identifiers'].items():
-            <identifier type="${identifier.type}" id="${identifier.id}">
-                % for where, count in counts.items():
-                <appearance where="${where}" count="${count}" />
-                % endfor
-            </identifier>
-        % endfor
-        </identifiers>
-    </stats>
 </root>
 '''
 
+stats_template = '''
+<stats>
+    <identifiers>
+    % for identifier, counts in stats['identifiers'].items():
+        <identifier type="${identifier.type}" id="${identifier.id}">
+            % for where, count in counts.items():
+            <appearance where="${where}" count="${count}" />
+            % endfor
+        </identifier>
+    % endfor
+    </identifiers>
+</stats>
+'''
 
-def serialize(pages, stats, output_handler):
-    xml_template = mako.template.Template(xml_template_str)
-    ctx = mako.runtime.Context(output_handler, pages=pages, stats=stats)
 
+def _render_xml_template(template, output_handler, **kwargs):
+    ctx = mako.runtime.Context(output_handler, **kwargs)
+
+    xml_template = mako.template.Template(template)
     xml_template.render_context(ctx)
+
+
+def serialize_page_revisions(pages, output_handler):
+    _render_xml_template(pages_revisions_template, output_handler, pages=pages)
+
+
+def serialize_stats(stats, output_handler):
+    _render_xml_template(stats_template, output_handler, stats=stats)

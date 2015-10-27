@@ -205,17 +205,25 @@ def main():
         basename = input_file_path.name
 
         if args.dry_run:
-            output = open(os.devnull, 'wt')
+            pages_output = open(os.devnull, 'wt')
+            stats_output = open(os.devnull, 'wt')
         else:
-            output = output_writer(str(args.output_dir_path/basename),
-                compression=args.output_compression)
-
-        with output:
-            dumper.serialize(
-                pages=page_extractor(dump, language=args.language),
-                stats=global_stats,
-                output_handler=output,
+            pages_output = output_writer(
+                path=str(args.output_dir_path/(basename + '.features.xml')),
+                compression=args.output_compression,
             )
+            stats_output = output_writer(
+                path=str(args.output_dir_path/(basename + '.stats.xml')),
+                compression=args.output_compression,
+            )
+
+        with pages_output:
+            dumper.serialize_page_revisions(
+                pages=page_extractor(dump, language=args.language),
+                output_handler=pages_output,
+            )
+        with stats_output:
+            dumper.serialize_stats(global_stats, stats_output)
 
 
 if __name__ == '__main__':
