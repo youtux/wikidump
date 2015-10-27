@@ -28,8 +28,8 @@ def DefaultStatsDict():
     return {
         'raw': 0,
         'in_tag_ref': 0,
-        'in_template_citation': 0,
-        'in_tag_ref_and_template_citation': 0,
+        'in_template': 0,
+        'in_tag_ref_and_template': 0,
     }
 
 global_stats = {
@@ -65,12 +65,12 @@ def revisions_extractor(revisions, language):
         references = extractors.references(text)
         sections = extractors.sections(text)
         bibliography = "".join(extractors.bibliography(text, language))
-        citations = extractors.citation(text, language)
+        templates = extractors.templates(text)
         dois = list(mwcites_extractors.doi.extract(text))
 
         for doi in dois:
             in_tag_ref = any(doi.id in ref for ref in references)
-            in_template_citation = any(doi.id in c for c in citations)
+            in_template = any(doi.id in t for t in templates)
 
             # appearance = Appearance(
             #     raw=not in_tag_ref and not in_template_citation,
@@ -79,14 +79,14 @@ def revisions_extractor(revisions, language):
             # )
             doi_stats = global_stats['identifiers'].setdefault(
                 doi, DefaultStatsDict())
-            if not in_tag_ref and not in_template_citation:
+            if not in_tag_ref and not in_template:
                 doi_stats['raw'] += 1
-            if in_tag_ref and not in_template_citation:
+            if in_tag_ref and not in_template:
                 doi_stats['in_tag_ref'] += 1
-            if in_template_citation and not in_tag_ref:
-                doi_stats['in_template_citation'] += 1
-            if in_tag_ref and in_template_citation:
-                doi_stats['in_tag_ref_and_template_citation'] += 1
+            if in_template and not in_tag_ref:
+                doi_stats['in_template'] += 1
+            if in_tag_ref and in_template:
+                doi_stats['in_tag_ref_and_template'] += 1
 
         yield Revision(
             id=mw_revision.id,
