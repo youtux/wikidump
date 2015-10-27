@@ -108,3 +108,16 @@ def templates(source):
 
     for match in pattern.finditer(source):
         yield match.group(0)
+
+
+@utils.listify
+def pub_identifiers(source):
+    identifiers_extractors = (
+        mwcites_extractors.arxiv.extract,
+        mwcites_extractors.doi.extract,
+        mwcites_extractors.isbn.extract,
+        mwcites_extractors.pubmed.extract,
+    )
+    for identifier_extractor in identifiers_extractors:
+        for identifier in identifier_extractor(source):
+            yield identifier
