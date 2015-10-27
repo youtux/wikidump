@@ -3,6 +3,7 @@ import collections
 import sys
 import subprocess
 import codecs
+import os
 
 import mw.xml_dump
 import mwxml
@@ -184,6 +185,10 @@ def get_args():
         default=None,
         help='Output compression format.',
     )
+    parser.add_argument('--dry-run', '-n',
+        action='store_true',
+        help="Don't write any file",
+    )
 
     return parser.parse_args()
 
@@ -199,12 +204,17 @@ def main():
 
         basename = input_file_path.name
 
-        with output_writer(str(args.output_dir_path/basename),
-                           compression=args.output_compression) as out:
+        if args.dry_run:
+            output = open(os.devnull, 'wt')
+        else:
+            output = output_writer(str(args.output_dir_path/basename),
+                compression=args.output_compression)
+
+        with output:
             dumper.serialize(
                 pages=page_extractor(dump, language=args.language),
                 stats=global_stats,
-                output_handler=out,
+                output_handler=output,
             )
 
 
