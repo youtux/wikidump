@@ -4,13 +4,14 @@ import sys
 import subprocess
 import codecs
 import os
+import datetime
 
 import mw.xml_dump
 import mwxml
 import pathlib
 import regex
 
-from . import dumper, extractors, utils, languages, mwcites_extractors
+from . import dumper, extractors, languages
 
 Citation = collections.namedtuple("Citation", "type id")
 
@@ -25,7 +26,7 @@ Revision.ReferenceDiff = collections.namedtuple("ReferenceDiff", "action text")
 #     "raw in_tag_ref in_template_citation in_tag_ref_and_template_citation")
 
 
-def DefaultStatsDict():
+def IdentifierStatsDict():
     return {
         'raw': 0,
         'in_tag_ref': 0,
@@ -33,9 +34,17 @@ def DefaultStatsDict():
         'in_tag_ref_and_template': 0,
     }
 
-global_stats = {
-    'identifiers': {},
-}
+
+def GlobalStatsDict():
+    return {
+        'identifiers': {},
+        'performance': {
+            'start_time': None,
+            'end_time': None,
+            'revisions_analyzed': 0,
+            'pages_analyzed': 0,
+        }
+    }
 
 
 def dot(num=None):
@@ -58,7 +67,7 @@ def remove_comments(source):
     return pattern.sub('', source)
 
 
-def revisions_extractor(revisions, language):
+def revisions_extractor(revisions, language, stats):
     prev_references = set()
     for mw_revision in revisions:
         dot()
@@ -92,6 +101,7 @@ def revisions_extractor(revisions, language):
             bibliography=bibliography,
         )
 
+        stats['performance']['revisions_analyzed'] += 1
         prev_references = references
 
 
@@ -110,7 +120,7 @@ def references_diff(prev_references, references):
     return references_diffs
 
 
-def page_extractor(dump, language):
+def page_extractor(dump, language, stats):
     for mw_page in dump:
         log("Processing", mw_page)
 
@@ -118,8 +128,13 @@ def page_extractor(dump, language):
             id=mw_page.id,
             title=mw_page.title,
             namespace=mw_page.namespace,
-            revisions=revisions_extractor(mw_page, language=language),
+            revisions=revisions_extractor(
+                mw_page,
+                language=language,
+                stats=stats,
+            ),
         )
+        stats['performance']['pages_analyzed'] += 1
 
 
 def open_xml_file(path):
@@ -195,6 +210,8 @@ def main():
 
     for input_file_path in args.files:
         log("Analyzing {}...".format(input_file_path))
+
+        stats = GlobalStatsDict()
         dump = mwxml.Dump.from_file(open_xml_file(str(input_file_path)))
 
         basename = input_file_path.name
@@ -212,13 +229,19 @@ def main():
                 compression=args.output_compression,
             )
 
+        stats['performance']['start_time'] = datetime.datetime.utcnow()
         with pages_output:
             dumper.serialize_page_revisions(
-                pages=page_extractor(dump, language=args.language),
+                pages=page_extractor(dump,
+                    language=args.language,
+                    stats=stats,
+                ),
                 output_handler=pages_output,
             )
+        stats['performance']['end_time'] = datetime.datetime.utcnow()
+
         with stats_output:
-            dumper.serialize_stats(global_stats, stats_output)
+            dumper.serialize_stats(stats, stats_output)
 
 
 if __name__ == '__main__':
