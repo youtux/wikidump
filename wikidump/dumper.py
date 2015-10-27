@@ -1,6 +1,7 @@
 import mako.runtime
 import mako.template
 
+# TODO: create 2 separate files
 
 xml_template_str = '''
 <root>
@@ -37,6 +38,7 @@ xml_template_str = '''
                 % for where, count in counts.items():
                 <appearance where="${where}" count="${count}" />
                 % endfor
+            </identifier>
         % endfor
         </identifiers>
     </stats>
