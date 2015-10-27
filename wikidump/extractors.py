@@ -5,7 +5,7 @@ import regex
 
 from . import utils, languages
 
-Reference = collections.namedtuple('Reference', 'text')
+# Reference = collections.namedtuple('Reference', 'text')
 Section = collections.namedtuple('Section', 'name level')
 
 
@@ -14,14 +14,19 @@ def _pattern_or(words):
 
     return r'(?:{})'.format(words_joined)
 
+
 @functools.lru_cache(maxsize=10)
 @utils.listify
 def references(source):
-    pattern = regex.compile(r'(?P<ref><ref>.+?<\/ref>)',
-        regex.VERBOSE | regex.MULTILINE)
+    pattern = regex.compile(
+        r'''
+            <ref
+            .*?
+            <\/ref>
+        ''', regex.VERBOSE | regex.MULTILINE)
 
     for match in pattern.finditer(source):
-        yield Reference(text=match.group('ref'))
+        yield match.group(0)
 
 
 @functools.lru_cache(maxsize=10)

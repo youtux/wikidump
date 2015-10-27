@@ -69,7 +69,7 @@ def revisions_extractor(revisions, language):
         dois = list(mwcites_extractors.doi.extract(text))
 
         for doi in dois:
-            in_tag_ref = any(doi.id in ref.text for ref in references)
+            in_tag_ref = any(doi.id in ref for ref in references)
             in_template_citation = any(doi.id in c for c in citations)
 
             # appearance = Appearance(
@@ -107,8 +107,8 @@ def references_diff(prev_references, references):
     removed = set(prev_references) - set(references)
 
     references_diffs = (
-        [Revision.ReferenceDiff('added', ref.text) for ref in added]
-        + [Revision.ReferenceDiff('removed', ref.text) for ref in removed]
+        [Revision.ReferenceDiff('added', ref) for ref in added]
+        + [Revision.ReferenceDiff('removed', ref) for ref in removed]
     )
 
     return references_diffs
