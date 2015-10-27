@@ -46,11 +46,19 @@ stats_template = '''
 </stats>
 '''
 
+_default_filters = [
+    'str',   # Unicode
+    'x',     # XML
+]
+
 
 def _render_xml_template(template, output_handler, **kwargs):
     ctx = mako.runtime.Context(output_handler, **kwargs)
 
-    xml_template = mako.template.Template(template)
+    xml_template = mako.template.Template(
+        template,
+        default_filters=_default_filters,
+    )
     xml_template.render_context(ctx)
 
 
