@@ -52,6 +52,10 @@ LEXICON = [
     (r'\w+',               'word'),
     (r'.',                 'etc')
 ]
+_lexicon_pattern = '|'.join("(?P<{0}>{1})".format(name, pattern)
+                           for pattern, name in LEXICON)
+_lexicon_re = re.compile(_lexicon_pattern, re.I|re.U)
+
 
 def extract_island(text):
     tokens = tokenize_finditer(text, LEXICON)
@@ -84,6 +88,8 @@ def tokenize_scanner(text, lexicon=LEXICON):
 
 #from mwcites.extractors.doi import tokenize_scan
 #list(tokenize_scan("foo bar baz.{}"))
+_punctuation_at_end_re = re.compile(r'[\.,!]+$')
+
 
 def read_doi(tokens):
     assert tokens.peek()[0] == 'doi_start'
@@ -121,27 +127,21 @@ def read_doi(tokens):
 
 
     # Do not return a doi with punctuation at the end
-    return re.sub(r'[\.,!]+$', '', ''.join(doi_buffer))
+    return _punctuation_at_end_re.sub('', ''.join(doi_buffer))
 
 
-
-def tokenize_search(text, start, lexicon=LEXICON):
-    pattern = '|'.join("(?P<{0}>{1})".format(name, pattern)
-                       for pattern, name in lexicon)
-
-    group_regex = re.compile(pattern, re.I|re.U)
-
-    match = group_regex.search(text, start)
+def tokenize_search(text, start):
+    match = _lexicon_re.search(text, start)
     while match is not None:
         yield match.lastgroup, match.group(0)
-        match = group_regex.search(text, match.span()[1])
+        match = _lexicon_re.search(text, match.span()[1])
 
-def extract_search(text, lexicon=LEXICON):
 
+def extract_search(text):
     last_end = 0
     for match in DOI_START_RE.finditer(text):
         if match.span()[0] > last_end:
-            tokens = tokenize_search(text, match.span()[0], lexicon=lexicon)
+            tokens = tokenize_search(text, match.span()[0])
             tokens = peekable(tokens)
             doi = read_doi(tokens)
             last_end = match.span()[0] + len(doi)
