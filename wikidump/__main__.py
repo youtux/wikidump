@@ -27,18 +27,14 @@ Diff = collections.namedtuple("Diff", "action data")
 #     "raw in_tag_ref in_template_citation in_tag_ref_and_template_citation")
 
 
-def IdentifierStatsDict():
-    return {
-        'raw': 0,
-        'in_tag_ref': 0,
-        'in_template': 0,
-        'in_tag_ref_and_template': 0,
-    }
-
-
 def GlobalStatsDict():
     return {
-        'identifiers': {},
+        'identifiers': {
+            'only_in_raw_text': 0,
+            'only_in_tag_ref': 0,
+            'only_in_template': 0,
+            'in_tag_ref_and_template': 0,
+        },
         'performance': {
             'start_time': None,
             'end_time': None,
@@ -88,14 +84,13 @@ def revisions_extractor(revisions, language, stats):
             in_tag_ref = any(pub_identifier.id in ref for ref in references)
             in_template = any(pub_identifier.id in t for t in templates)
 
-            identifier_stats = stats['identifiers'].setdefault(
-                pub_identifier, IdentifierStatsDict())
+            identifier_stats = stats['identifiers']
             if not in_tag_ref and not in_template:
-                identifier_stats['raw'] += 1
+                identifier_stats['only_in_raw_text'] += 1
             if in_tag_ref and not in_template:
-                identifier_stats['in_tag_ref'] += 1
+                identifier_stats['only_in_tag_ref'] += 1
             if in_template and not in_tag_ref:
-                identifier_stats['in_template'] += 1
+                identifier_stats['only_in_template'] += 1
             if in_tag_ref and in_template:
                 identifier_stats['in_tag_ref_and_template'] += 1
 
