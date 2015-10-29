@@ -13,10 +13,18 @@ pages_revisions_template = '''
                 <id>${revision.id}</id>
                 <timestamp>${revision.timestamp}</timestamp>
                 <references_diff>
-                    %for reference_diff in revision.references_diff:
-                    <reference_diff action="${reference_diff.action}">${reference_diff.text}</reference_diff>
+                    %for diff in revision.references_diff:
+                    <diff action="${diff.action}">${diff.data}</diff>
                     %endfor
                 </references_diff>
+                <publication_identifiers_diff>
+                    % for diff in revision.publication_identifiers_diff:
+                    <diff action="${diff.action}">\
+<%                      identifier = diff.data %>
+                        <identifier type="${identifier.type}" id="${identifier.id}" />
+                    </diff>
+                    % endfor
+                </publication_identifiers_diff>
                 <sections>
                     %for section in revision.sections:
                     <section level="${section.level}">${section.name}</section>

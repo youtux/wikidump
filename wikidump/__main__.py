@@ -17,9 +17,10 @@ Citation = collections.namedtuple("Citation", "type id")
 
 Page = collections.namedtuple("Page", "id title namespace revisions")
 Revision = collections.namedtuple("Revision",
-    "id timestamp references_diff sections bibliography")
+    '''id timestamp references_diff publication_identifiers_diff sections
+    bibliography''')
 Revision.Section = collections.namedtuple('Section', "name level")
-Revision.ReferenceDiff = collections.namedtuple("ReferenceDiff", "action text")
+Diff = collections.namedtuple("Diff", "action data")
 # IdentifierStats = collections.namedtuple("IdentifierStats",
 #     "type id appearances")
 # Appearance = collections.namedtuple("Appearance",
@@ -69,6 +70,7 @@ def remove_comments(source):
 
 def revisions_extractor(revisions, language, stats):
     prev_references = set()
+    prev_pub_identifiers = set()
     for mw_revision in revisions:
         dot()
         text = remove_comments(mw_revision.text or '')
@@ -100,28 +102,31 @@ def revisions_extractor(revisions, language, stats):
         yield Revision(
             id=mw_revision.id,
             timestamp=mw_revision.timestamp.to_json(),
-            references_diff=references_diff(prev_references, references),
+            references_diff=diff(prev_references, references),
+            publication_identifiers_diff=diff(prev_pub_identifiers,
+                pub_identifiers),
             sections=sections,
             bibliography=bibliography,
         )
 
         stats['performance']['revisions_analyzed'] += 1
         prev_references = references
+        prev_pub_identifiers = pub_identifiers
 
 
-def references_diff(prev_references, references):
-    # prev_references = [ref.text for ref in prev_references]
-    # references = [ref.text for ref in references]
+def diff(previous, current):
+    # previous = [ref.text for ref in previous]
+    # current = [ref.text for ref in current]
 
-    added = set(references) - set(prev_references)
-    removed = set(prev_references) - set(references)
+    added = set(current) - set(previous)
+    removed = set(previous) - set(current)
 
-    references_diffs = (
-        [Revision.ReferenceDiff('added', ref) for ref in added]
-        + [Revision.ReferenceDiff('removed', ref) for ref in removed]
+    diff = (
+        [Diff('added', el) for el in added]
+        + [Diff('removed', el) for el in removed]
     )
 
-    return references_diffs
+    return diff
 
 
 def page_extractor(dump, language, stats):
@@ -162,7 +167,7 @@ def compressor_7z(file_path):
 
 def output_writer(path, compression):
     if compression == '7z':
-        return compressor_7z(path)
+        return compressor_7z(path + '.7z')
     else:
         return open(path, 'wt', encoding='utf-8')
 
