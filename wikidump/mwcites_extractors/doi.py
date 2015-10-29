@@ -4,8 +4,7 @@ from collections import defaultdict
 
 from more_itertools import peekable
 
-# from ..identifier import Identifier
-from mwcites.identifier import Identifier
+from ..identifier import Identifier
 
 DOI_START_RE = re.compile(r'10\.[0-9]{4,}/')
 
@@ -125,9 +124,12 @@ def read_doi(tokens):
         else:
             doi_buffer.append(next(tokens)[1])
 
-
-    # Do not return a doi with punctuation at the end
-    return _punctuation_at_end_re.sub('', ''.join(doi_buffer))
+    id_ = ''.join(doi_buffer)
+    return Identifier(
+        type='doi',
+        id=_punctuation_at_end_re.sub('', id_),
+        raw=id_,
+    )
 
 
 def tokenize_search(text, start):
@@ -143,9 +145,11 @@ def extract_search(text):
         if match.span()[0] > last_end:
             tokens = tokenize_search(text, match.span()[0])
             tokens = peekable(tokens)
-            doi = read_doi(tokens)
-            last_end = match.span()[0] + len(doi)
-            yield Identifier('doi', doi)
+
+            identifier = read_doi(tokens)
+            yield identifier
+
+            last_end = match.span()[0] + len(identifier.raw)
         else:
             last_end = max(match.span()[1], last_end)
 

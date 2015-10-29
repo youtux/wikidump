@@ -1,8 +1,7 @@
 # import re
 import regex as re
 
-# from ..identifier import Identifier
-from mwcites.identifier import Identifier
+from ..identifier import Identifier
 
 # From http://arxiv.org/help/arxiv_identifier
 old_id_pattern = r"-?(?P<old_id>(?:[a-z]+(.[a-z]+)/)?[0-9]{4}[0-9]+)"
@@ -22,5 +21,9 @@ ARXIV_REs = [re.compile(
 def extract(text):
     for pattern in ARXIV_REs:
         for match in pattern.finditer(text):
-            id = match.group('new_id') or match.group("old_id")
-            yield Identifier("arxiv", id.lower())
+            id_ = match.group('new_id') or match.group("old_id")
+            yield Identifier(
+                type="arxiv",
+                id=id_.lower(),
+                raw=id_,
+            )
