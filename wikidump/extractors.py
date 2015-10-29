@@ -9,6 +9,7 @@ from . import utils, languages, mwcites_extractors
 Section = collections.namedtuple('Section', 'name level')
 
 
+@functools.lru_cache(maxsize=None)
 def _pattern_or(words):
     words_joined = '|'.join(words)
 
@@ -23,7 +24,7 @@ def references(source):
             <ref
             .*?
             <\/ref>
-        ''', regex.VERBOSE | regex.MULTILINE)
+        ''', regex.VERBOSE | regex.IGNORECASE)
 
     for match in pattern.finditer(source):
         yield match.group(0)
@@ -102,22 +103,23 @@ def templates(source):
     pattern = regex.compile(
         r'''
             \{\{
-            (?P<content>.*?)
+            (?P<content>(?s).*?)
             \}\}
-        ''', regex.VERBOSE | regex.MULTILINE)
+        ''', regex.VERBOSE)
 
     for match in pattern.finditer(source):
         yield match.group(0)
 
 
 @utils.listify
-def pub_identifiers(source):
-    identifiers_extractors = (
-        mwcites_extractors.arxiv.extract,
-        mwcites_extractors.doi.extract,
-        mwcites_extractors.isbn.extract,
-        mwcites_extractors.pubmed.extract,
-    )
-    for identifier_extractor in identifiers_extractors:
+def pub_identifiers(source, extractors=None):
+    if extractors is None:
+        extractors = (
+            mwcites_extractors.arxiv.extract,
+            mwcites_extractors.doi.extract,
+            mwcites_extractors.isbn.extract,
+            mwcites_extractors.pubmed.extract,
+        )
+    for identifier_extractor in extractors:
         for identifier in identifier_extractor(source):
             yield identifier

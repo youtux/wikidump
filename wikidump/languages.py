@@ -8,7 +8,7 @@ bibliography = {
 }
 
 citation = {
-    'en': {'Citation', 'cite', 'vcite'},
+    'en': frozenset({'Citation', 'cite', 'vcite'}),
 }
 
 # add: see also, related pages
