@@ -10,8 +10,9 @@ import mw.xml_dump
 import mwxml
 import pathlib
 import regex
+import more_itertools
 
-from . import dumper, extractors, languages
+from . import dumper, utils, extractors, languages
 
 Citation = collections.namedtuple("Citation", "type id")
 
@@ -21,19 +22,27 @@ Revision = collections.namedtuple("Revision",
     bibliography''')
 Revision.Section = collections.namedtuple('Section', "name level")
 Diff = collections.namedtuple("Diff", "action data")
+
 # IdentifierStats = collections.namedtuple("IdentifierStats",
 #     "type id appearances")
 # Appearance = collections.namedtuple("Appearance",
 #     "raw in_tag_ref in_template_citation in_tag_ref_and_template_citation")
 
 
+def IdentifierStatsDict():
+    return {
+        'only_in_raw_text': 0,
+        'only_in_tag_ref': 0,
+        'only_in_template': 0,
+        'in_tag_ref_and_template': 0,
+    }
+
+
 def GlobalStatsDict():
     return {
         'identifiers': {
-            'only_in_raw_text': 0,
-            'only_in_tag_ref': 0,
-            'only_in_template': 0,
-            'in_tag_ref_and_template': 0,
+            'global': IdentifierStatsDict(),
+            'last_revision': IdentifierStatsDict(),
         },
         'performance': {
             'start_time': None,
@@ -64,11 +73,50 @@ def remove_comments(source):
     return pattern.sub('', source)
 
 
+def has_next(peekable):
+    try:
+        peekable.peek()
+        return True
+    except StopIteration:
+        return False
+
+
+@utils.listify(wrapper=set)
+def where_appears(what, **kwargs):
+    for key, iterable in kwargs.items():
+        # TODO: improve the performance of these searches:
+        # it's much faster to use
+        #   pub_identifier.id in "".join(references)
+        # but less readable and more vulnerable
+        if any(what in el for el in iterable):
+            yield key
+
+
+def identifier_appearance_stat_key(identifier, references, templates):
+    where = where_appears(identifier.raw,
+        references=references,
+        templates=templates,
+    )
+
+    if {'templates', 'references'} <= where:
+        return 'in_tag_ref_and_template'
+    elif 'templates' in where:
+        return 'only_in_template'
+    elif 'references' in where:
+        return 'only_in_tag_ref'
+    else:
+        return 'only_in_raw_text'
+
+
 def revisions_extractor(revisions, language, stats):
     prev_references = set()
     prev_pub_identifiers = set()
+    revisions = more_itertools.peekable(revisions)
     for mw_revision in revisions:
         dot()
+
+        is_last_revision = not has_next(revisions)
+
         text = remove_comments(mw_revision.text or '')
         references = extractors.references(text)
         sections = extractors.sections(text)
@@ -77,22 +125,12 @@ def revisions_extractor(revisions, language, stats):
         pub_identifiers = extractors.pub_identifiers(text)
 
         for pub_identifier in pub_identifiers:
-            # TODO: improve the performance of these searches:
-            # it's much faster to use
-            #   pub_identifier.id in "".join(references)
-            # but less readable and more vulnerable
-            in_tag_ref = any(pub_identifier.id in ref for ref in references)
-            in_template = any(pub_identifier.id in t for t in templates)
+            key_to_increment = identifier_appearance_stat_key(pub_identifier,
+                references, templates)
 
-            identifier_stats = stats['identifiers']
-            if not in_tag_ref and not in_template:
-                identifier_stats['only_in_raw_text'] += 1
-            if in_tag_ref and not in_template:
-                identifier_stats['only_in_tag_ref'] += 1
-            if in_template and not in_tag_ref:
-                identifier_stats['only_in_template'] += 1
-            if in_tag_ref and in_template:
-                identifier_stats['in_tag_ref_and_template'] += 1
+            stats['identifiers']['global'][key_to_increment] += 1
+            if is_last_revision:
+                stats['identifiers']['last_revision'][key_to_increment] += 1
 
         yield Revision(
             id=mw_revision.id,

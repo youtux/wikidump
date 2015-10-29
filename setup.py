@@ -29,5 +29,6 @@ setup(
         'mwtypes==0.2.0',
         'mwxml==0.2.0',
         'regex==2015.9.28',
+        'more-itertools==2.2',
     ],
 )

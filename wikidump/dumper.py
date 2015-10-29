@@ -48,8 +48,12 @@ stats_template = '''
         <pages_analyzed>${stats['performance']['pages_analyzed']}</pages_analyzed>
     </performance>
     <identifiers>
-        % for where, count in stats['identifiers'].items():
-        <appearance where="${where}" count="${count}" />
+        % for key in ['global', 'last_revision']:
+        <${key}>
+            % for where, count in stats['identifiers'][key].items():
+            <appearance where="${where}" count="${count}" />
+            % endfor
+        </${key}>
         % endfor
     </identifiers>
 </stats>
