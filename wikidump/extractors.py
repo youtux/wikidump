@@ -9,7 +9,7 @@ from . import utils, languages, mwcites_extractors
 Section = collections.namedtuple('Section', 'name level')
 
 
-@functools.lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=1000)
 def _pattern_or(words):
     words_joined = '|'.join(words)
 
