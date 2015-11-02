@@ -83,10 +83,12 @@ def has_next(peekable):
 
 @utils.listify(wrapper=set)
 def where_appears(span, **spans):
+    span_le = extractors.Span.__le__
     for key, span_list in spans.items():
-        for other_span in span_list:
-            if utils.range_inclusion(range(*span), range(*other_span)):
-                yield key
+        # if any(span <= other_span) for other_span in span_list):
+        # HACK: the following is more efficient. Sorry :(
+        if any(span_le(span, other_span) for other_span in span_list):
+            yield key
 
 
 def identifier_appearance_stat_key(appearances):
@@ -113,6 +115,7 @@ def revisions_extractor(revisions, language, stats):
 
         references_captures = extractors.references(text)
         references = [reference for reference, _ in references_captures]
+        references_spans = [span for _, span in references_captures]
 
         sections = [section for section, _ in extractors.sections(text)]
 
@@ -120,15 +123,15 @@ def revisions_extractor(revisions, language, stats):
             for section, _ in extractors.bibliography(text, language))
 
         templates_captures = extractors.templates(text)
+        templates_spans = [span for _, span in templates_captures]
 
         identifiers_captures = extractors.pub_identifiers(text)
         identifiers = [identifier for identifier, _ in identifiers_captures]
 
-
         for identifier, span in identifiers_captures:
             appearances = where_appears(span,
-                references=(capture.span for capture in references_captures),
-                templates=(capture.span for capture in templates_captures),
+                references=references_spans,
+                templates=templates_spans,
             )
             key_to_increment = identifier_appearance_stat_key(appearances)
 

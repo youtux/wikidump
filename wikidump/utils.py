@@ -40,7 +40,3 @@ def iter_with_prev(iterable):
     for el in iterable:
         yield last, el
         last = el
-
-
-def range_inclusion(subrange, range_):
-    return min(subrange) in range_ and max(subrange) in range_
