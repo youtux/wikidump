@@ -82,27 +82,19 @@ def has_next(peekable):
 
 
 @utils.listify(wrapper=set)
-def where_appears(what, **kwargs):
-    for key, iterable in kwargs.items():
-        # TODO: improve the performance of these searches:
-        # it's much faster to use
-        #   pub_identifier.id in "".join(references)
-        # but less readable and more vulnerable
-        if any(what in el for el in iterable):
-            yield key
+def where_appears(span, **spans):
+    for key, span_list in spans.items():
+        for other_span in span_list:
+            if utils.range_inclusion(range(*span), range(*other_span)):
+                yield key
 
 
-def identifier_appearance_stat_key(identifier, references, templates):
-    where = where_appears(identifier.raw,
-        references=references,
-        templates=templates,
-    )
-
-    if {'templates', 'references'} <= where:
+def identifier_appearance_stat_key(appearances):
+    if {'templates', 'references'} <= appearances:
         return 'in_tag_ref_and_template'
-    elif 'templates' in where:
+    elif 'templates' in appearances:
         return 'only_in_template'
-    elif 'references' in where:
+    elif 'references' in appearances:
         return 'only_in_tag_ref'
     else:
         return 'only_in_raw_text'
@@ -110,7 +102,7 @@ def identifier_appearance_stat_key(identifier, references, templates):
 
 def revisions_extractor(revisions, language, stats):
     prev_references = set()
-    prev_pub_identifiers = set()
+    prev_identifiers = set()
     revisions = more_itertools.peekable(revisions)
     for mw_revision in revisions:
         dot()
@@ -118,15 +110,27 @@ def revisions_extractor(revisions, language, stats):
         is_last_revision = not has_next(revisions)
 
         text = remove_comments(mw_revision.text or '')
-        references = extractors.references(text)
-        sections = extractors.sections(text)
-        bibliography = "".join(extractors.bibliography(text, language))
-        templates = extractors.templates(text)
-        pub_identifiers = extractors.pub_identifiers(text)
 
-        for pub_identifier in pub_identifiers:
-            key_to_increment = identifier_appearance_stat_key(pub_identifier,
-                references, templates)
+        references_captures = extractors.references(text)
+        references = [reference for reference, _ in references_captures]
+
+        sections = [section for section, _ in extractors.sections(text)]
+
+        bibliography = "".join(section.body
+            for section, _ in extractors.bibliography(text, language))
+
+        templates_captures = extractors.templates(text)
+
+        identifiers_captures = extractors.pub_identifiers(text)
+        identifiers = [identifier for identifier, _ in identifiers_captures]
+
+
+        for identifier, span in identifiers_captures:
+            appearances = where_appears(span,
+                references=(capture.span for capture in references_captures),
+                templates=(capture.span for capture in templates_captures),
+            )
+            key_to_increment = identifier_appearance_stat_key(appearances)
 
             stats['identifiers']['global'][key_to_increment] += 1
             if is_last_revision:
@@ -136,15 +140,15 @@ def revisions_extractor(revisions, language, stats):
             id=mw_revision.id,
             timestamp=mw_revision.timestamp.to_json(),
             references_diff=diff(prev_references, references),
-            publication_identifiers_diff=diff(prev_pub_identifiers,
-                pub_identifiers),
+            publication_identifiers_diff=diff(prev_identifiers,
+                                              identifiers),
             sections=sections,
             bibliography=bibliography,
         )
 
         stats['performance']['revisions_analyzed'] += 1
         prev_references = references
-        prev_pub_identifiers = pub_identifiers
+        prev_identifiers = identifiers
 
 
 def diff(previous, current):

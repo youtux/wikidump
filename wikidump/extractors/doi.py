@@ -4,7 +4,10 @@ from collections import defaultdict
 
 from more_itertools import peekable
 
-from ..identifier import Identifier
+from .common import CaptureResult, Identifier, Span
+from .. import utils
+
+__all__ = ['extract']
 
 DOI_START_RE = re.compile(r'10\.[0-9]{4,}/')
 
@@ -98,6 +101,7 @@ def read_doi(tokens):
     doi_buffer = [next(tokens)[1]]
 
     while tokens.peek(None) is not None:
+
         name, match = tokens.peek()
 
         if name in ('url_end', 'break', 'whitespace', 'tag', 'pipe',
@@ -125,32 +129,33 @@ def read_doi(tokens):
             doi_buffer.append(next(tokens)[1])
 
     id_ = ''.join(doi_buffer)
-    return Identifier(
-        type='doi',
-        id=_punctuation_at_end_re.sub('', id_),
-        raw=id_,
-    )
+    return Identifier('doi', _punctuation_at_end_re.sub('', id_))
 
 
 def tokenize_search(text, start):
     match = _lexicon_re.search(text, start)
     while match is not None:
         yield match.lastgroup, match.group(0)
-        match = _lexicon_re.search(text, match.span()[1])
+        match = _lexicon_re.search(text, match.end())
 
 
+@utils.listify
 def extract_search(text):
     last_end = 0
     for match in DOI_START_RE.finditer(text):
-        if match.span()[0] > last_end:
-            tokens = tokenize_search(text, match.span()[0])
+        begin_pos = match.start()
+
+        if begin_pos > last_end:
+            tokens = tokenize_search(text, begin_pos)
             tokens = peekable(tokens)
 
             identifier = read_doi(tokens)
-            yield identifier
+            end_pos = begin_pos + len(identifier.id)
 
-            last_end = match.span()[0] + len(identifier.raw)
+            yield CaptureResult(identifier, Span(begin_pos, end_pos))
+
+            last_end = end_pos
         else:
-            last_end = max(match.span()[1], last_end)
+            last_end = max(match.end(), last_end)
 
-extract = extract_search # Setting the default to the best method
+extract = extract_search  # Setting the default to the best method

@@ -3,8 +3,8 @@ supported = {'en', 'it'}
 # Add synonyms: further reading, literature, etc.
 # (not "notes", since it is equivalent to "references")
 bibliography = {
-    'en': 'bibliography',
-    'it': 'bibliografia',
+    'en': frozenset({'bibliography'}),
+    'it': frozenset({'bibliografia'}),
 }
 
 citation = {

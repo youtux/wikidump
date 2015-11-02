@@ -1,7 +1,10 @@
 # import re
 import regex as re
 
-from ..identifier import Identifier
+from .common import CaptureResult, Identifier, Span
+from .. import utils
+
+__all__ = ['extract']
 
 # From http://arxiv.org/help/arxiv_identifier
 old_id_pattern = r"-?(?P<old_id>(?:[a-z]+(.[a-z]+)/)?[0-9]{4}[0-9]+)"
@@ -18,12 +21,16 @@ ARXIV_REs = [re.compile(
              for prefix in prefixes]
 
 
+@utils.listify
 def extract(text):
     for pattern in ARXIV_REs:
         for match in pattern.finditer(text):
-            id_ = match.group('new_id') or match.group("old_id")
-            yield Identifier(
-                type="arxiv",
-                id=id_.lower(),
-                raw=id_,
-            )
+            if match.group('new_id'):
+                id_ = match.group('new_id')
+                span = match.span('new_id')
+            else:
+                id_ = match.group('old_id')
+                span = match.span('old_id')
+
+            yield CaptureResult(
+                Identifier("arxiv", id=id_.lower()), Span(*span))
