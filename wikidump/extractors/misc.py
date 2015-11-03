@@ -41,7 +41,7 @@ def references(source):
             <ref
             .*?
             <\/ref>
-        ''', regex.VERBOSE | regex.IGNORECASE)
+        ''', regex.VERBOSE | regex.IGNORECASE | regex.DOTALL)
 
     for match in pattern.finditer(source):
         yield CaptureResult(match.group(0), Span(*match.span()))
