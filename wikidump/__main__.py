@@ -171,6 +171,10 @@ def page_extractor(dump, language, stats):
     for mw_page in dump:
         log("Processing", mw_page)
 
+        # Skip non-articles
+        if mw_page.namespace != 0:
+            continue
+
         yield Page(
             id=mw_page.id,
             title=mw_page.title,
