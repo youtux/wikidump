@@ -7,7 +7,7 @@ from .. import utils
 ISBN_RE = re.compile(r'isbn\s?=?\s?([0-9\-Xx]+)', re.I)
 
 
-@utils.listify
+
 def extract(text):
     for match in ISBN_RE.finditer(text):
         id_ = match.group(1)

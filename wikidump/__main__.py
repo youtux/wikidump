@@ -86,7 +86,7 @@ def where_appears(span, **spans):
     span_le = extractors.Span.__le__
     for key, span_list in spans.items():
         # if any(span <= other_span) for other_span in span_list):
-        # HACK: the following is more efficient. Sorry :(
+        # HACK: the following is more efficient. Sorry :(
         if any(span_le(span, other_span) for other_span in span_list):
             yield key
 
@@ -113,25 +113,23 @@ def revisions_extractor(revisions, language, stats):
 
         text = remove_comments(mw_revision.text or '')
 
-        references_captures = extractors.references(text)
+        references_captures = list(extractors.references(text))
         references = [reference for reference, _ in references_captures]
-        references_spans = [span for _, span in references_captures]
 
         sections = [section for section, _ in extractors.sections(text)]
 
-        bibliography = "".join(section.body
-            for section, _ in extractors.bibliography(text, language))
+        bibliography = "".join(section.body for section in sections
+            if extractors.is_secion_bibliography(section.name, language))
 
         templates_captures = extractors.templates(text)
-        templates_spans = [span for _, span in templates_captures]
 
-        identifiers_captures = extractors.pub_identifiers(text)
+        identifiers_captures = list(extractors.pub_identifiers(text))
         identifiers = [identifier for identifier, _ in identifiers_captures]
 
         for identifier, span in identifiers_captures:
             appearances = where_appears(span,
-                references=references_spans,
-                templates=templates_spans,
+                references=(span for _, span in references_captures),
+                templates=(span for _, span in templates_captures),
             )
             key_to_increment = identifier_appearance_stat_key(appearances)
 

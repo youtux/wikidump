@@ -2,7 +2,6 @@
 import regex as re
 
 from .common import CaptureResult, Identifier, Span
-from .. import utils
 
 __all__ = ['extract']
 
@@ -21,7 +20,6 @@ ARXIV_REs = [re.compile(
              for prefix in prefixes]
 
 
-@utils.listify
 def extract(text):
     for pattern in ARXIV_REs:
         for match in pattern.finditer(text):

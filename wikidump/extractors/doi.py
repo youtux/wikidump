@@ -139,7 +139,6 @@ def tokenize_search(text, start):
         match = _lexicon_re.search(text, match.end())
 
 
-@utils.listify
 def extract_search(text):
     last_end = 0
     for match in DOI_START_RE.finditer(text):

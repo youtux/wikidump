@@ -35,8 +35,6 @@ def _pattern_or(words):
     return r'(?:{})'.format(words_joined)
 
 
-@functools.lru_cache(maxsize=10)
-@utils.listify
 def references(source):
     pattern = regex.compile(
         r'''
@@ -49,8 +47,6 @@ def references(source):
         yield CaptureResult(match.group(0), Span(*match.span()))
 
 
-@functools.lru_cache(maxsize=10)
-@utils.listify
 def sections(source):
     section_header_matches = peekable(section_header_re.finditer(source))
     for match in section_header_matches:
@@ -75,17 +71,21 @@ def sections(source):
         yield CaptureResult(section, Span(match.start(), body_end))
 
 
-@functools.lru_cache(maxsize=10)
-@utils.listify
-def bibliography(source, language):
+# @functools.lru_cache(maxsize=10)
+# @utils.listify
+# def bibliography(source, language):
+#     bibliography_synonyms = languages.bibliography[language]
+
+#     for capture in sections(source):
+#         section_name = capture.data.name
+#         if section_name.strip().lower() not in bibliography_synonyms:
+#             continue
+
+#         yield capture
+@functools.lru_cache(maxsize=500)
+def is_secion_bibliography(section_name, language):
     bibliography_synonyms = languages.bibliography[language]
-
-    for capture in sections(source):
-        section_name = capture.data.name
-        if section_name.strip().lower() not in bibliography_synonyms:
-            continue
-
-        yield capture
+    return section_name.strip().lower() in bibliography_synonyms
 
 
 # @functools.lru_cache(maxsize=10)
@@ -110,14 +110,11 @@ def bibliography(source, language):
 #         yield match.group(0)
 
 
-@functools.lru_cache(maxsize=10)
-@utils.listify
 def templates(source):
     for match in templates_re.finditer(source):
         yield CaptureResult(match.group(0), Span(*match.span()))
 
 
-@utils.listify
 def pub_identifiers(source, extractors=None):
     if extractors is None:
         extractors = (
