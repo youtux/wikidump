@@ -121,7 +121,7 @@ def revisions_extractor(revisions, language, stats):
         bibliography = "".join(section.body for section in sections
             if extractors.is_secion_bibliography(section.name, language))
 
-        templates_captures = extractors.templates(text)
+        templates_captures = list(extractors.templates(text))
 
         identifiers_captures = list(extractors.pub_identifiers(text))
         identifiers = [identifier for identifier, _ in identifiers_captures]
