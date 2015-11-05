@@ -2,6 +2,11 @@ import mako.runtime
 import mako.template
 
 pages_revisions_template = '''
+<%!
+    from itertools import groupby
+    def groupby_action(diff):
+        return groupby(diff, lambda d: d.action)
+%>
 <root>
     % for page in pages:
     <page>
@@ -13,22 +18,27 @@ pages_revisions_template = '''
                 <id>${revision.id}</id>
                 <timestamp>${revision.timestamp}</timestamp>
                 <references_diff>
-                    %for diff in revision.references_diff:
-                    <diff action="${diff.action}">${diff.data}</diff>
-                    %endfor
+                    % for key, group in groupby_action(revision.references_diff):
+                    <diff action="${key}">
+                        % for _, text in group:
+                        <reference>${text}</reference>
+                        % endfor
+                    </diff>
+                    % endfor
                 </references_diff>
                 <publication_identifiers_diff>
-                    % for diff in revision.publication_identifiers_diff:
-                    <diff action="${diff.action}">\
-<%                      identifier = diff.data %>
+                    % for key, group in groupby_action(revision.publication_identifiers_diff):
+                    <diff action="${key}">
+                        % for _, identifier in group:
                         <identifier type="${identifier.type}" id="${identifier.id}" />
+                        % endfor
                     </diff>
                     % endfor
                 </publication_identifiers_diff>
                 <sections>
-                    %for section in revision.sections:
+                    % for section in revision.sections:
                     <section level="${section.level}">${section.name}</section>
-                    %endfor
+                    % endfor
                 </sections>
                 <bibliography>${revision.bibliography}</bibliography>
             </revision>
