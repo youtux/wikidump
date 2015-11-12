@@ -76,6 +76,10 @@ stats_template = '''
         </${key}>
         % endfor
     </sections_per_revision>
+    <revisions>
+        <global count="${stats['revisions']['global']}" />
+        <last_revision count="${stats['revisions']['last_revision']}" />
+    </revisions>
 </stats>
 '''
 

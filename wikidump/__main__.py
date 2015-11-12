@@ -48,6 +48,7 @@ def GlobalStatsDict():
             'global': collections.Counter(),
             'last_revision': collections.Counter(),
         },
+        'revisions': collections.Counter(),
         'performance': {
             'start_time': None,
             'end_time': None,
@@ -129,6 +130,10 @@ def revisions_extractor(revisions, language, stats):
         sections_stats['global'][sections_count] += 1
         if is_last_revision:
             sections_stats['last_revision'][sections_count] += 1
+
+        stats['revisions']['global'] += 1
+        if is_last_revision:
+            stats['revisions']['last_revision'] += 1
 
         yield None
 
