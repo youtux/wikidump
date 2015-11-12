@@ -40,9 +40,13 @@ def IdentifierStatsDict():
 
 def GlobalStatsDict():
     return {
-        'identifiers': {
-            'global': IdentifierStatsDict(),
-            'last_revision': IdentifierStatsDict(),
+        'sections_per_revision': {
+            'global': collections.Counter(),
+            'last_revision': collections.Counter(),
+        },
+        'section_names_per_revision': {
+            'global': collections.Counter(),
+            'last_revision': collections.Counter(),
         },
         'performance': {
             'start_time': None,
@@ -103,8 +107,8 @@ def identifier_appearance_stat_key(appearances):
 
 
 def revisions_extractor(revisions, language, stats):
-    prev_references = set()
-    prev_identifiers = set()
+    section_names_stats = stats['section_names_per_revision']
+    sections_stats = stats['sections_per_revision']
     revisions = more_itertools.peekable(revisions)
     for mw_revision in revisions:
         dot()
@@ -113,44 +117,22 @@ def revisions_extractor(revisions, language, stats):
 
         text = remove_comments(mw_revision.text or '')
 
-        references_captures = list(extractors.references(text))
-        references = [reference for reference, _ in references_captures]
+        section_names = [section.name.strip().lower()
+                         for section, _ in extractors.sections(text)]
+        sections_count = len(section_names)
 
-        sections = [section for section, _ in extractors.sections(text)]
-
-        bibliography = "".join(section.body for section in sections
-            if extractors.is_secion_bibliography(section.name, language))
-
-        templates_captures = list(extractors.templates(text))
-
-        identifiers_captures = list(extractors.pub_identifiers(text))
-        identifiers = [identifier for identifier, _ in identifiers_captures]
-
-        for identifier, span in identifiers_captures:
-            appearances = where_appears(span,
-                references=(span for _, span in references_captures),
-                templates=(span for _, span in templates_captures),
-            )
-            key_to_increment = identifier_appearance_stat_key(appearances)
-
-            stats['identifiers']['global'][key_to_increment] += 1
+        for section_name in section_names:
+            section_names_stats['global'][section_name] += 1
             if is_last_revision:
-                stats['identifiers']['last_revision'][key_to_increment] += 1
+                section_names_stats['last_revision'][section_name] += 1
 
-        yield Revision(
-            id=mw_revision.id,
-            user=mw_revision.user,
-            timestamp=mw_revision.timestamp.to_json(),
-            references_diff=diff(prev_references, references),
-            publication_identifiers_diff=diff(prev_identifiers,
-                                              identifiers),
-            sections=sections,
-            bibliography=bibliography,
-        )
+        sections_stats['global'][sections_count] += 1
+        if is_last_revision:
+            sections_stats['last_revision'][sections_count] += 1
+
+        yield None
 
         stats['performance']['revisions_analyzed'] += 1
-        prev_references = references
-        prev_identifiers = identifiers
 
 
 def diff(previous, current):
@@ -269,27 +251,23 @@ def main():
         basename = input_file_path.name
 
         if args.dry_run:
-            pages_output = open(os.devnull, 'wt')
             stats_output = open(os.devnull, 'wt')
         else:
-            pages_output = output_writer(
-                path=str(args.output_dir_path/(basename + '.features.xml')),
-                compression=args.output_compression,
-            )
             stats_output = output_writer(
                 path=str(args.output_dir_path/(basename + '.stats.xml')),
                 compression=args.output_compression,
             )
 
         stats['performance']['start_time'] = datetime.datetime.utcnow()
-        with pages_output:
-            dumper.serialize_page_revisions(
-                pages=page_extractor(dump,
-                    language=args.language,
-                    stats=stats,
-                ),
-                output_handler=pages_output,
-            )
+
+        # Process the stats
+        for page in page_extractor(dump,
+                language=args.language,
+                stats=stats,
+                ):
+            for revision in page.revisions:
+                pass
+
         stats['performance']['end_time'] = datetime.datetime.utcnow()
 
         with stats_output:

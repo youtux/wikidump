@@ -58,15 +58,24 @@ stats_template = '''
         <revisions_analyzed>${stats['performance']['revisions_analyzed']}</revisions_analyzed>
         <pages_analyzed>${stats['performance']['pages_analyzed']}</pages_analyzed>
     </performance>
-    <identifiers>
+    <section_names_per_revision>
         % for key in ['global', 'last_revision']:
         <${key}>
-            % for where, count in stats['identifiers'][key].items():
-            <appearance where="${where}" count="${count}" />
+            % for section_name, count in stats['section_names_per_revision'][key].most_common():
+            <section name="${section_name}" count="${count}" />
             % endfor
         </${key}>
         % endfor
-    </identifiers>
+    </section_names_per_revision>
+    <sections_per_revision>
+        % for key in ['global', 'last_revision']:
+        <${key}>
+            % for sections_in_revision, count in stats['sections_per_revision'][key].most_common():
+            <sections number="${sections_in_revision}" count="${count}" />
+            % endfor
+        </${key}>
+        % endfor
+    </sections_per_revision>
 </stats>
 '''
 
