@@ -18,7 +18,7 @@ Citation = collections.namedtuple("Citation", "type id")
 
 Page = collections.namedtuple("Page", "id title namespace revisions")
 Revision = collections.namedtuple("Revision",
-    '''id timestamp references_diff publication_identifiers_diff sections
+    '''id user timestamp references_diff publication_identifiers_diff sections
     bibliography''')
 Revision.Section = collections.namedtuple('Section', "name level")
 Diff = collections.namedtuple("Diff", "action data")
@@ -139,6 +139,7 @@ def revisions_extractor(revisions, language, stats):
 
         yield Revision(
             id=mw_revision.id,
+            user=mw_revision.user,
             timestamp=mw_revision.timestamp.to_json(),
             references_diff=diff(prev_references, references),
             publication_identifiers_diff=diff(prev_identifiers,

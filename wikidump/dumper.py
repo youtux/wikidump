@@ -16,6 +16,7 @@ pages_revisions_template = '''
             % for revision in page.revisions:
             <revision>
                 <id>${revision.id}</id>
+                <user id="{$revision.user.id}" name="${revision.user.text}" />
                 <timestamp>${revision.timestamp}</timestamp>
                 <references_diff>
                     % for key, group in groupby_action(revision.references_diff):
