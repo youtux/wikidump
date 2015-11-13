@@ -102,8 +102,8 @@ def identifier_appearance_stat_key(appearances):
         return 'only_in_raw_text'
 
 
-def revisions_extractor(revisions, language, stats):
-    revisions = more_itertools.peekable(revisions)
+def revisions_extractor(page, language, stats):
+    revisions = more_itertools.peekable(page)
 
     prev_references = set()
     prev_identifiers = set()
