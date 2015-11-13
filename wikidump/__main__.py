@@ -164,6 +164,10 @@ def page_extractor(dump, language, stats):
         if mw_page.namespace != 0:
             continue
 
+        # Skip redirects
+        if mw_page.redirect is not None:
+            continue
+
         yield Page(
             id=mw_page.id,
             title=mw_page.title,
