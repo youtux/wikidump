@@ -107,10 +107,11 @@ def identifier_appearance_stat_key(appearances):
         return 'only_in_raw_text'
 
 
-def revisions_extractor(revisions, language, stats):
+def revisions_extractor(page, language, stats):
+    revisions = more_itertools.peekable(page)
+
     section_names_stats = stats['section_names_per_revision']
     sections_stats = stats['sections_per_revision']
-    revisions = more_itertools.peekable(revisions)
     for mw_revision in revisions:
         dot()
 
