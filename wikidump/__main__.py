@@ -103,9 +103,10 @@ def identifier_appearance_stat_key(appearances):
 
 
 def revisions_extractor(revisions, language, stats):
+    revisions = more_itertools.peekable(revisions)
+
     prev_references = set()
     prev_identifiers = set()
-    revisions = more_itertools.peekable(revisions)
     for mw_revision in revisions:
         dot()
 
