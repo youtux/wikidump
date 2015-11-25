@@ -70,11 +70,6 @@ stats_template = '''
 </stats>
 '''
 
-filters_xml_unicode = [
-    'str',   # Unicode
-    'x',     # XML
-]
-
 
 def render_template(template, output_handler, default_filters=None, **kwargs):
     ctx = mako.runtime.Context(output_handler, **kwargs)
@@ -90,7 +85,7 @@ def serialize_page_revisions(pages, output_handler):
     render_template(
         pages_revisions_template,
         output_handler,
-        default_fiters=filters_xml_unicode,
+        default_fiters=['x'],  # XML escaping
         pages=pages,
     )
 
@@ -99,6 +94,6 @@ def serialize_stats(stats, output_handler):
     render_template(
         stats_template,
         output_handler,
-        default_filters=filters_xml_unicode,
+        default_filters=['x'],  # XML escaping
         stats=stats,
     )
