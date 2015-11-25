@@ -57,11 +57,6 @@ def get_args():
         type=pathlib.Path,
         help='XML output directory.',
     )
-    parser.add_argument('-l', '--language',
-        choices=languages.supported,
-        required=True,
-        help='The language of the dump.',
-    )
     parser.add_argument('--output-compression',
         choices={None, '7z'},
         required=False,

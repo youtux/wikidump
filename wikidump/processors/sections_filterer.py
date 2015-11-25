@@ -127,10 +127,15 @@ def extract_pages(dump, language, stats, only_last_revision):
 def configure_subparsers(subparsers):
     parser = subparsers.add_parser('extract-bibliography',
         help='Extract only sections may be a bibliography')
+    parser.add_argument('-l', '--language',
+        choices=languages.supported,
+        required=True,
+        help='The language of the dump.',
+    )
     parser.add_argument('--only-last-revision',
         action='store_true',
         help='Consider only the last revision for each page.',
-        )
+    )
     parser.set_defaults(func=main)
 
 
