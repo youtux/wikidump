@@ -73,12 +73,16 @@ def get_args():
     processors.identifiers_extractor.configure_subparsers(subparsers)
     processors.sections_counter.configure_subparsers(subparsers)
 
-    return parser.parse_args()
+    parsed_args = parser.parse_args()
+    if 'func' not in parsed_args:
+        parser.print_usage()
+        parser.exit(1)
+
+    return parsed_args
 
 
 def main():
     args = get_args()
-    print(args)
 
     args.output_dir_path.mkdir(parents=True, exist_ok=True)
 
