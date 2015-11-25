@@ -71,17 +71,8 @@ def sections(source):
         yield CaptureResult(section, Span(match.start(), body_end))
 
 
-# @functools.lru_cache(maxsize=10)
-# @utils.listify
-# def bibliography(source, language):
-#     bibliography_synonyms = languages.bibliography[language]
-
-#     for capture in sections(source):
-#         section_name = capture.data.name
-#         if section_name.strip().lower() not in bibliography_synonyms:
-#             continue
-
-#         yield capture
+# TODO: instead of comparing section_name to a bib synonym,
+# search all the possible bib synonyms in the section name
 @functools.lru_cache(maxsize=500)
 def is_secion_bibliography(section_name, language):
     bibliography_synonyms = languages.bibliography[language]
