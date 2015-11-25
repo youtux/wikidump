@@ -20,6 +20,11 @@ features_template = '''
         ${name}="${text | x}"
     % endif
 </%def>
+<%def name="tag_user_if_exists(user)" filter="trim">
+    % if user:
+        <user ${attribute_if_exists('id', user.id)} ${attribute_if_exists('name', user.text)} />
+    % endif
+</%def>
 <root>
     % for page in pages:
     <page>
@@ -29,7 +34,7 @@ features_template = '''
             % for revision in page.revisions:
             <revision>
                 <id>${revision.id | x}</id>
-                <user ${attribute_if_exists('id', revision.user.id)} name="${revision.user.text | x}" />
+                ${tag_user_if_exists(revision.user)}
                 <timestamp>${revision.timestamp | x}</timestamp>
                 <sections>
                     % for section in revision.sections:
