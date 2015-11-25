@@ -1,4 +1,8 @@
-# import re
+"""
+Code from `python-mwcites` by Aaron Halfaker.
+See https://github.com/mediawiki-utilities/python-mwcites
+"""
+
 import regex as re
 from collections import defaultdict
 

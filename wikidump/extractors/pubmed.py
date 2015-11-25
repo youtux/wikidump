@@ -1,4 +1,8 @@
-# import re
+"""
+Regular expressions taken from `python-mwcites` by Aaron Halfaker.
+See https://github.com/mediawiki-utilities/python-mwcites
+"""
+
 import regex as re
 
 from .common import CaptureResult, Identifier, Span

@@ -1,11 +1,14 @@
-# import re
+"""
+Regular expression taken from `python-mwcites` by Aaron Halfaker.
+See https://github.com/mediawiki-utilities/python-mwcites
+"""
+
 import regex as re
 
 from .common import CaptureResult, Identifier, Span
 from .. import utils
 
 ISBN_RE = re.compile(r'isbn\s?=?\s?([0-9\-Xx]+)', re.I)
-
 
 
 def extract(text):
