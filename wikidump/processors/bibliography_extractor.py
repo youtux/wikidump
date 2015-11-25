@@ -3,8 +3,11 @@ import functools
 import datetime
 
 import more_itertools
+import fuzzywuzzy.process
 
 from .. import utils, extractors, dumper, languages
+
+FUZZY_MATCH_CUTOFF = 91      # between 0, 100
 
 features_template = '''
 <%!
@@ -49,6 +52,15 @@ stats_template = '''
         <revisions_analyzed>${stats['performance']['revisions_analyzed'] | x}</revisions_analyzed>
         <pages_analyzed>${stats['performance']['pages_analyzed'] | x}</pages_analyzed>
     </performance>
+    <extracted-section-names>
+        % for key in ['global', 'last_revision']:
+        <${key}>
+            % for section_name, count in stats['section_names'][key].most_common():
+            <section name="${section_name | x}" count="${count}" />
+            % endfor
+        </${key}>
+        % endfor
+    </extracted-section-names>
 </stats>
 '''
 
@@ -68,12 +80,18 @@ Revision = collections.namedtuple('Revision', [
 # TODO: instead of comparing section_name to a bib synonym,
 # search all the possible bib synonyms in the section name
 @functools.lru_cache(maxsize=500)
-def is_secion_bibliography(section_name, language):
+def is_secion_bibliography(section_name, language, score_cutoff=FUZZY_MATCH_CUTOFF):
     bibliography_synonyms = languages.bibliography[language]
-    return section_name.strip().lower() in bibliography_synonyms
+    match = fuzzywuzzy.process.extractOne(
+        section_name,
+        bibliography_synonyms,
+        score_cutoff=score_cutoff,
+    )
+    return bool(match)
 
 
 def extract_revisions(mw_page, language, stats, only_last_revision):
+    section_names_stats = stats['section_names']
     revisions = more_itertools.peekable(mw_page)
     for mw_revision in revisions:
         utils.dot()
@@ -86,9 +104,14 @@ def extract_revisions(mw_page, language, stats, only_last_revision):
 
         sections = (section for section, _ in extractors.sections(text))
 
-        bibliography_sections = (section
+        bibliography_sections = list(section
             for section in sections
             if is_secion_bibliography(section.name, language))
+
+        for section in bibliography_sections:
+            section_names_stats['global'][section.name] += 1
+            if is_last_revision:
+                section_names_stats['last_revision'][section.name] += 1
 
         yield Revision(
             id=mw_revision.id,
@@ -146,6 +169,10 @@ def main(dump, features_output_h, stats_output_h, args):
             'end_time': None,
             'revisions_analyzed': 0,
             'pages_analyzed': 0,
+        },
+        'section_names': {
+            'global': collections.Counter(),
+            'last_revision': collections.Counter(),
         },
     }
     pages_generator = extract_pages(dump,
