@@ -30,5 +30,7 @@ setup(
         'mwxml==0.2.0',
         'regex==2015.9.28',
         'more-itertools==2.2',
+        'fuzzywuzzy==0.8.0',
+        'python-Levenshtein==0.12.0',
     ],
 )
