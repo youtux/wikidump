@@ -1,4 +1,25 @@
 import functools
+import collections
+import sys
+import regex as re
+
+
+Diff = collections.namedtuple("Diff", "action data")
+
+
+def diff(previous, current):
+    # previous = [ref.text for ref in previous]
+    # current = [ref.text for ref in current]
+
+    added = set(current) - set(previous)
+    removed = set(previous) - set(current)
+
+    diff = (
+        [Diff('added', el) for el in added]
+        + [Diff('removed', el) for el in removed]
+    )
+
+    return diff
 
 
 # https://github.com/shazow/unstdlib.py/blob/master/unstdlib/standard/list_.py#L149
@@ -40,3 +61,31 @@ def iter_with_prev(iterable):
     for el in iterable:
         yield last, el
         last = el
+
+
+def dot(num=None):
+    if not num:
+        what = '.'
+    elif num < 10:
+        what = str(num)
+    else:
+        what = '>'
+    print(what, end='', file=sys.stderr, flush=True)
+
+
+def log(*args):
+    first, *rest = args
+    print('\n' + str(first), *rest, end='', file=sys.stderr, flush=True)
+
+
+def remove_comments(source):
+    pattern = re.compile(r'<!--(.*?)-->', re.MULTILINE | re.DOTALL)
+    return pattern.sub('', source)
+
+
+def has_next(peekable):
+    try:
+        peekable.peek()
+        return True
+    except StopIteration:
+        return False
