@@ -7,7 +7,7 @@ import mw.xml_dump
 import mwxml
 import pathlib
 
-from . import utils, languages, processors
+from . import utils, processors
 
 
 def open_xml_file(path):
