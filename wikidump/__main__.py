@@ -71,6 +71,7 @@ def get_args():
     subparsers = parser.add_subparsers(help='sub-commands help')
     processors.sections_filterer.configure_subparsers(subparsers)
     processors.identifiers_extractor.configure_subparsers(subparsers)
+    processors.sections_counter.configure_subparsers(subparsers)
 
     return parser.parse_args()
 
