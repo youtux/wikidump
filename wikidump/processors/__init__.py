@@ -1,1 +1,1 @@
-from . import sections_filterer, identifiers_extractor, sections_counter
+from . import sections_filterer, bibliography_extractor, sections_counter
