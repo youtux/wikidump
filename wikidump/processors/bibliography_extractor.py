@@ -1,10 +1,13 @@
+"""Extract sections which are to be considered bibliography."""
 import collections
 import functools
 import datetime
+from typing import NamedTuple, Iterable, Optional, Mapping, Iterator
 
+import jsonable
 import more_itertools
 import fuzzywuzzy.process
-
+import mwxml
 from .. import utils, extractors, dumper, languages
 
 FUZZY_MATCH_CUTOFF = 91      # between 0, 100
@@ -69,23 +72,30 @@ stats_template = '''
 </stats>
 '''
 
-Page = collections.namedtuple('Page', [
-    'id',
-    'title',
-    'revisions',
+
+Revision = NamedTuple('Revision', [
+    ('id', str),
+    ('user', Optional[mwxml.Revision.User]),
+    ('timestamp', jsonable.Type),
+    ('sections', Iterable[extractors.misc.Section]),
 ])
-Revision = collections.namedtuple('Revision', [
-    'id',
-    'user',
-    'timestamp',
-    'sections',
+
+
+Page = NamedTuple('Page', [
+    ('id', str),
+    ('title', str),
+    ('revisions', Iterable[Revision]),
 ])
 
 
 # TODO: instead of comparing section_name to a bib synonym,
 # search all the possible bib synonyms in the section name
 @functools.lru_cache(maxsize=500)
-def is_secion_bibliography(section_name, language, score_cutoff=FUZZY_MATCH_CUTOFF):
+def is_section_bibliography(
+        section_name: str,
+        language: str,
+        score_cutoff: int=FUZZY_MATCH_CUTOFF) -> bool:
+    """Check whether a section is a bibliography."""
     bibliography_synonyms = languages.bibliography[language]
     match = fuzzywuzzy.process.extractOne(
         section_name,
@@ -95,7 +105,12 @@ def is_secion_bibliography(section_name, language, score_cutoff=FUZZY_MATCH_CUTO
     return bool(match)
 
 
-def extract_revisions(mw_page, language, stats, only_last_revision):
+def extract_revisions(
+        mw_page: mwxml.Page,
+        language: str,
+        stats: Mapping,
+        only_last_revision: bool) -> Iterator[Revision]:
+    """Extract the sections which are bibliography from the revisions."""
     section_names_stats = stats['section_names']
     revisions = more_itertools.peekable(mw_page)
     for mw_revision in revisions:
@@ -109,9 +124,10 @@ def extract_revisions(mw_page, language, stats, only_last_revision):
 
         sections = (section for section, _ in extractors.sections(text))
 
-        bibliography_sections = list(section
-            for section in sections
-            if is_secion_bibliography(section.name, language))
+        bibliography_sections = list(
+            section for section in sections
+            if is_section_bibliography(section.name, language)
+        )
 
         for section in bibliography_sections:
             section_names_stats['global'][section.name] += 1
@@ -128,7 +144,12 @@ def extract_revisions(mw_page, language, stats, only_last_revision):
         stats['performance']['revisions_analyzed'] += 1
 
 
-def extract_pages(dump, language, stats, only_last_revision):
+def extract_pages(
+        dump: Iterable[mwxml.Page],
+        language: str,
+        stats: Mapping,
+        only_last_revision: bool) -> Iterator[Page]:
+    """Extract revisions from a page."""
     for mw_page in dump:
         utils.log("Processing", mw_page.title)
 
@@ -153,21 +174,31 @@ def extract_pages(dump, language, stats, only_last_revision):
 
 
 def configure_subparsers(subparsers):
-    parser = subparsers.add_parser('extract-bibliography',
-        help='Extract only sections may be a bibliography')
-    parser.add_argument('-l', '--language',
+    """Configure a new subparser."""
+    parser = subparsers.add_parser(
+        'extract-bibliography',
+        help='Extract only sections may be a bibliography',
+    )
+    parser.add_argument(
+        '-l', '--language',
         choices=languages.supported,
         required=True,
         help='The language of the dump.',
     )
-    parser.add_argument('--only-last-revision',
+    parser.add_argument(
+        '--only-last-revision',
         action='store_true',
         help='Consider only the last revision for each page.',
     )
     parser.set_defaults(func=main)
 
 
-def main(dump, features_output_h, stats_output_h, args):
+def main(
+        dump: Iterable[mwxml.Page],
+        features_output_h,
+        stats_output_h,
+        args) -> None:
+    """Main function that parses the arguments and writes the output."""
     stats = {
         'performance': {
             'start_time': None,
@@ -180,11 +211,13 @@ def main(dump, features_output_h, stats_output_h, args):
             'last_revision': collections.Counter(),
         },
     }
-    pages_generator = extract_pages(dump,
+    pages_generator = extract_pages(
+        dump,
         language=args.language,
         stats=stats,
         only_last_revision=args.only_last_revision,
     )
+
     with features_output_h:
         stats['performance']['start_time'] = datetime.datetime.utcnow()
         dumper.render_template(

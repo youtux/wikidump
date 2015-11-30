@@ -1,7 +1,9 @@
+"""Main module that parses command line arguments."""
 import argparse
 import subprocess
 import codecs
 import os
+from typing import IO, Union, Optional
 
 import mw.xml_dump
 import mwxml
@@ -10,14 +12,16 @@ import pathlib
 from . import utils, processors
 
 
-def open_xml_file(path):
+def open_xml_file(path: Union[str, IO]):
+    """Open an xml file, decompressing it if necessary."""
     f = mw.xml_dump.functions.open_file(
         mw.xml_dump.functions.file(path)
     )
     return f
 
 
-def compressor_7z(file_path):
+def compressor_7z(file_path: str):
+    """"Return a file-object that compresses data written using 7z."""
     p = subprocess.Popen(
         ['7z', 'a', '-si', file_path],
         stdin=subprocess.PIPE,
@@ -29,41 +33,48 @@ def compressor_7z(file_path):
     return utf8writer(p.stdin)
 
 
-def output_writer(path, compression):
+def output_writer(path: str, compression: Optional[str]):
+    """Write data to a compressed file."""
     if compression == '7z':
         return compressor_7z(path + '.7z')
     else:
         return open(path, 'wt', encoding='utf-8')
 
 
-def create_path(path):
+def create_path(path: Union[pathlib.Path, str]):
+    """Create a path, which may or may not exist."""
     path = pathlib.Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
 def get_args():
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         prog='wikidump',
         description='Wikidump features extractor.',
     )
-    parser.add_argument('files',
+    parser.add_argument(
+        'files',
         metavar='FILE',
         type=pathlib.Path,
         nargs='+',
-        help='XML Wikidump file to parse. It accepts only 7z.'
+        help='XML Wikidump file to parse. It accepts only 7z.',
     )
-    parser.add_argument('output_dir_path',
+    parser.add_argument(
+        'output_dir_path',
         metavar='OUTPUT_DIR',
         type=pathlib.Path,
         help='XML output directory.',
     )
-    parser.add_argument('--output-compression',
+    parser.add_argument(
+        '--output-compression',
         choices={None, '7z'},
         required=False,
         default=None,
         help='Output compression format.',
     )
-    parser.add_argument('--dry-run', '-n',
+    parser.add_argument(
+        '--dry-run', '-n',
         action='store_true',
         help="Don't write any file",
     )
@@ -82,6 +93,7 @@ def get_args():
 
 
 def main():
+    """Main function."""
     args = get_args()
 
     args.output_dir_path.mkdir(parents=True, exist_ok=True)
@@ -105,7 +117,8 @@ def main():
                 path=str(args.output_dir_path/(basename + '.stats.xml')),
                 compression=args.output_compression,
             )
-        args.func(dump,
+        args.func(
+            dump,
             pages_output,
             stats_output,
             args,

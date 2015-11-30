@@ -1,7 +1,10 @@
-"""
+"""Extractor for "doi" identifiers.
+
 Code from `python-mwcites` by Aaron Halfaker.
 See https://github.com/mediawiki-utilities/python-mwcites
 """
+
+from typing import Iterator
 
 import regex as re
 from collections import defaultdict
@@ -9,9 +12,8 @@ from collections import defaultdict
 from more_itertools import peekable
 
 from .common import CaptureResult, Identifier, Span
-from .. import utils
 
-__all__ = ['extract']
+__all__ = ('extract',)
 
 DOI_START_RE = re.compile(r'10\.[0-9]{4,}/')
 
@@ -143,7 +145,7 @@ def tokenize_search(text, start):
         match = _lexicon_re.search(text, match.end())
 
 
-def extract_search(text):
+def extract_search(text: str) -> Iterator[CaptureResult[Identifier]]:
     last_end = 0
     for match in DOI_START_RE.finditer(text):
         begin_pos = match.start()

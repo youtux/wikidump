@@ -1,3 +1,6 @@
+"""Auxiliary funcitons to dump the data."""
+from typing import Optional, List
+
 import mako.runtime
 import mako.template
 
@@ -71,7 +74,13 @@ stats_template = '''
 '''
 
 
-def render_template(template, output_handler, default_filters=None, **kwargs):
+def render_template(
+        template: str,
+        output_handler,
+        default_filters: Optional[List[str]]=None,
+        **kwargs):
+    """Render a mako template in the given file."""
+
     ctx = mako.runtime.Context(output_handler, **kwargs)
 
     xml_template = mako.template.Template(

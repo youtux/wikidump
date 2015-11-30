@@ -1,6 +1,9 @@
-import collections
+"""Count the number of sections per article and the section names."""
 import datetime
+from typing import Mapping
+import collections
 
+import mwxml
 import more_itertools
 
 from .. import utils, extractors, dumper
@@ -40,7 +43,11 @@ stats_template = '''
 '''
 
 
-def analyze_revisions(page, stats, only_last_revision):
+def analyze_revisions(
+        page: mwxml.Page,
+        stats: Mapping,
+        only_last_revision: bool) -> None:
+    """Analyze revisions."""
     revisions = more_itertools.peekable(page)
 
     section_names_stats = stats['section_names_per_revision']
@@ -75,7 +82,11 @@ def analyze_revisions(page, stats, only_last_revision):
         stats['performance']['revisions_analyzed'] += 1
 
 
-def analyze_pages(dump, stats, only_last_revision):
+def analyze_pages(
+        dump: mwxml.Page,
+        stats: Mapping,
+        only_last_revision: bool) -> None:
+    """Analyze pages."""
     for mw_page in dump:
         utils.log("Processing", mw_page.title)
 
@@ -93,17 +104,26 @@ def analyze_pages(dump, stats, only_last_revision):
         stats['performance']['pages_analyzed'] += 1
 
 
-def configure_subparsers(subparsers):
-    parser = subparsers.add_parser('count-sections',
-        help='Count the number of sections and the section names of the dump.')
-    parser.add_argument('--only-last-revision',
+def configure_subparsers(subparsers) -> None:
+    """Configure the subparsers."""
+    parser = subparsers.add_parser(
+        'count-sections',
+        help='Count the number of sections and the section names of the dump.',
+    )
+    parser.add_argument(
+        '--only-last-revision',
         action='store_true',
         help='Consider only the last revision for each page.',
     )
     parser.set_defaults(func=main)
 
 
-def main(dump, features_output_h, stats_output_h, args):
+def main(
+        dump: mwxml.Dump,
+        features_output_h,
+        stats_output_h,
+        args):
+    """Main function that parses the arguments and writes the output."""
     stats = {
         'sections_per_revision': {
             'global': collections.Counter(),
@@ -122,7 +142,8 @@ def main(dump, features_output_h, stats_output_h, args):
         }
     }
     stats['performance']['start_time'] = datetime.datetime.utcnow()
-    analyze_pages(dump,
+    analyze_pages(
+        dump,
         stats=stats,
         only_last_revision=args.only_last_revision,
     )

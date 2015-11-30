@@ -1,14 +1,19 @@
-import collections
+"""Various extractors."""
+from typing import List, Iterator, NamedTuple, Callable, TypeVar, Iterable
 import functools
 from more_itertools import peekable
 
 import regex
 
-from .. import utils, languages
+from .. import languages
 from . import arxiv, pubmed, doi, isbn
 from .common import CaptureResult, Span
 
-Section = collections.namedtuple('Section', 'name level body')
+Section = NamedTuple('Section', [
+    ('name', str),
+    ('level', int),
+    ('body', str),
+])
 
 section_header_re = regex.compile(
     r'''^
@@ -29,13 +34,14 @@ templates_re = regex.compile(
 
 
 @functools.lru_cache(maxsize=1000)
-def _pattern_or(words):
+def _pattern_or(words: List) -> str:
     words_joined = '|'.join(words)
 
     return r'(?:{})'.format(words_joined)
 
 
-def references(source):
+def references(source: str) -> Iterator[CaptureResult[str]]:
+    """Return all the references found in the document."""
     pattern = regex.compile(
         r'''
             <ref
@@ -47,7 +53,8 @@ def references(source):
         yield CaptureResult(match.group(0), Span(*match.span()))
 
 
-def sections(source):
+def sections(source: str) -> Iterator[CaptureResult[Section]]:
+    """Return the sections found in the document."""
     section_header_matches = peekable(section_header_re.finditer(source))
     for match in section_header_matches:
         name = match.group('section_name')
@@ -71,10 +78,10 @@ def sections(source):
         yield CaptureResult(section, Span(match.start(), body_end))
 
 
-# TODO: instead of comparing section_name to a bib synonym,
-# search all the possible bib synonyms in the section name
+
 @functools.lru_cache(maxsize=500)
-def is_secion_bibliography(section_name, language):
+def is_secion_bibliography(section_name: str, language: str) -> bool:
+    """Check if a section name is a bibliography"""
     bibliography_synonyms = languages.bibliography[language]
     return section_name.strip().lower() in bibliography_synonyms
 
@@ -101,12 +108,15 @@ def is_secion_bibliography(section_name, language):
 #         yield match.group(0)
 
 
-def templates(source):
+def templates(source: str) -> Iterator[CaptureResult[str]]:
+    """Return all the templates found in the document."""
     for match in templates_re.finditer(source):
         yield CaptureResult(match.group(0), Span(*match.span()))
 
-
-def pub_identifiers(source, extractors=None):
+T = TypeVar('T')
+Extractor = Callable[[str], T]
+def pub_identifiers(source: str, extractors: Iterable[Extractor]=None) -> T:
+    """Return all the identifiers found in the document."""
     if extractors is None:
         extractors = (
             arxiv.extract,

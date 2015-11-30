@@ -1,25 +1,34 @@
+"""Various utilities."""
+
 import functools
-import collections
-import sys
 import regex as re
+import sys
+from typing import (NamedTuple, Generic, TypeVar, Iterable, List, Tuple,
+                    Optional, T)
+
+import more_itertools
 
 
-Diff = collections.namedtuple("Diff", "action data")
+class Diff(NamedTuple("Diff", [("action", str), ("data", T)]), Generic[T]):
+    """Class representing diff between two iterables."""
+    pass
 
 
-def diff(previous, current):
+T = TypeVar('T')
+def diff(previous: Iterable[T], current: Iterable[T]) -> List[Diff[T]]:
+    """Return a diff given the two iterables."""
     # previous = [ref.text for ref in previous]
     # current = [ref.text for ref in current]
 
     added = set(current) - set(previous)
     removed = set(previous) - set(current)
 
-    diff = (
+    diffs = (
         [Diff('added', el) for el in added]
         + [Diff('removed', el) for el in removed]
     )
 
-    return diff
+    return diffs
 
 
 # https://github.com/shazow/unstdlib.py/blob/master/unstdlib/standard/list_.py#L149
@@ -56,14 +65,18 @@ def listify(fn=None, wrapper=list):
     return listify_return(fn)
 
 
-def iter_with_prev(iterable):
+T = TypeVar('T')
+def iter_with_prev(iterable: Iterable[T]) -> Iterable[Tuple[T, T]]:
+    """Iterate over an iterable, yielding the previous and the current element.
+    """
     last = None
     for el in iterable:
         yield last, el
         last = el
 
 
-def dot(num=None):
+def dot(num: Optional[int]=None) -> None:
+    """Write a dot "." to the stderr stream."""
     if not num:
         what = '.'
     elif num < 10:
@@ -74,16 +87,19 @@ def dot(num=None):
 
 
 def log(*args):
+    """Wrapper for "print" that writes on stderr, without newline."""
     first, *rest = args
     print('\n' + str(first), *rest, end='', file=sys.stderr, flush=True)
 
 
-def remove_comments(source):
+def remove_comments(source: str) -> str:
+    """Remove all the html comments from a string."""
     pattern = re.compile(r'<!--(.*?)-->', re.MULTILINE | re.DOTALL)
     return pattern.sub('', source)
 
 
-def has_next(peekable):
+def has_next(peekable: more_itertools.peekable) -> bool:
+    """Return True if the peekable has a next element."""
     try:
         peekable.peek()
         return True

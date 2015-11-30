@@ -1,8 +1,8 @@
-'''wikidump
+"""wikidump
     ~~~~~~~~
     Extract features and stats from wikipedia XML dump files.
 
-'''
+"""
 
 from setuptools import setup, find_packages
 
@@ -32,5 +32,6 @@ setup(
         'more-itertools==2.2',
         'fuzzywuzzy==0.8.0',
         'python-Levenshtein==0.12.0',
+        'typing==3.5.0.1',
     ],
 )

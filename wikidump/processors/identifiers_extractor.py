@@ -1,6 +1,11 @@
+"""Extract all the identifiers (doi, pubmed, isbn, arxiv).
+
+Also, keep a stats file that counts where the identifiers have been found."""
+from typing import Mapping, Iterable
 import collections
 import datetime
 import more_itertools
+import mwxml
 
 from .. import utils, extractors, dumper
 
@@ -80,7 +85,9 @@ Revision = collections.namedtuple('Revision', [
     'publication_identifiers_diff',
 ])
 
+
 def IdentifierStatsDict():
+    """Returna new IdentifierStatsDict"""
     return {
         'only_in_raw_text': 0,
         'only_in_tag_ref': 0,
@@ -90,7 +97,10 @@ def IdentifierStatsDict():
 
 
 @utils.listify(wrapper=set)
-def where_appears(span, **spans):
+def where_appears(
+        span: extractors.common.Span,
+        **spans: Mapping[str, Iterable[extractors.common.Span]]):
+    """Find out where the current span appears, given a dict of spans."""
     span_le = extractors.Span.__le__
     for key, span_list in spans.items():
         # if any(span <= other_span) for other_span in span_list):
@@ -99,7 +109,8 @@ def where_appears(span, **spans):
             yield key
 
 
-def identifier_appearance_stat_key(appearances):
+def identifier_appearance_stat_key(appearances: set) -> str:
+    """Return the key given the appearances of the span."""
     if {'templates', 'references'} <= appearances:
         return 'in_tag_ref_and_template'
     elif 'templates' in appearances:
@@ -110,7 +121,11 @@ def identifier_appearance_stat_key(appearances):
         return 'only_in_raw_text'
 
 
-def extract_revisions(page, stats, only_last_revision):
+def extract_revisions(
+        page: mwxml.Page,
+        stats: Mapping,
+        only_last_revision: bool) -> Iterable[Revision]:
+    """Extract the identifiers from the revisions."""
     revisions = more_itertools.peekable(page)
 
     prev_identifiers = set()
@@ -131,7 +146,8 @@ def extract_revisions(page, stats, only_last_revision):
         identifiers = [identifier for identifier, _ in identifiers_captures]
 
         for identifier, span in identifiers_captures:
-            appearances = where_appears(span,
+            appearances = where_appears(
+                span,
                 references=(span for _, span in references_captures),
                 templates=(span for _, span in templates_captures),
             )
@@ -146,14 +162,19 @@ def extract_revisions(page, stats, only_last_revision):
             user=mw_revision.user,
             timestamp=mw_revision.timestamp.to_json(),
             publication_identifiers_diff=utils.diff(prev_identifiers,
-                                              identifiers),
+                                                    identifiers),
         )
 
         stats['performance']['revisions_analyzed'] += 1
         prev_identifiers = identifiers
 
 
-def extract_pages(dump, stats, only_last_revision):
+def extract_pages(
+        dump: mwxml.Dump,
+        stats: Mapping,
+        only_last_revision: bool,
+        ) -> Iterable[Page]:
+    """"Extract the pages from the dump."""
     for mw_page in dump:
         utils.log("Processing", mw_page.title)
 
@@ -177,16 +198,25 @@ def extract_pages(dump, stats, only_last_revision):
 
 
 def configure_subparsers(subparsers):
-    parser = subparsers.add_parser('extract-identifiers',
-        help='Extract the identifiers from the text (doi, isbn, arxiv and pubmed.')
-    parser.add_argument('--only-last-revision',
+    """Configure the subparsers."""
+    parser = subparsers.add_parser(
+        'extract-identifiers',
+        help='''Extract the identifiers from the text (doi, isbn, arxiv and \
+pubmed).''',
+    )
+    parser.add_argument(
+        '--only-last-revision',
         action='store_true',
         help='Consider only the last revision for each page.',
-        )
+    )
     parser.set_defaults(func=main)
 
 
-def main(dump, features_output_h, stats_output_h, args):
+def main(dump: mwxml.Dump,
+         features_output_h,
+         stats_output_h,
+         args):
+    """Main function that parses the arguments and writes the output."""
     stats = {
         'performance': {
             'start_time': None,
@@ -199,10 +229,12 @@ def main(dump, features_output_h, stats_output_h, args):
             'last_revision': IdentifierStatsDict(),
         },
     }
-    pages_generator = extract_pages(dump,
+    pages_generator = extract_pages(
+        dump,
         stats=stats,
         only_last_revision=args.only_last_revision,
     )
+
     with features_output_h:
         stats['performance']['start_time'] = datetime.datetime.utcnow()
         dumper.render_template(
