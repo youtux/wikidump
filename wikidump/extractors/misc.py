@@ -1,12 +1,12 @@
 """Various extractors."""
-from typing import List, Iterator, NamedTuple, Callable, TypeVar, Iterable
 import functools
-from more_itertools import peekable
 
 import regex
+from more_itertools import peekable
+from typing import Callable, Iterable, Iterator, List, NamedTuple, TypeVar
 
+from . import arxiv, doi, isbn, pubmed
 from .. import languages
-from . import arxiv, pubmed, doi, isbn
 from .common import CaptureResult, Span
 
 Section = NamedTuple('Section', [
@@ -78,10 +78,9 @@ def sections(source: str) -> Iterator[CaptureResult[Section]]:
         yield CaptureResult(section, Span(match.start(), body_end))
 
 
-
 @functools.lru_cache(maxsize=500)
 def is_secion_bibliography(section_name: str, language: str) -> bool:
-    """Check if a section name is a bibliography"""
+    """Check if a section name is a bibliography."""
     bibliography_synonyms = languages.bibliography[language]
     return section_name.strip().lower() in bibliography_synonyms
 

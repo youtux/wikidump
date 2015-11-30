@@ -1,12 +1,12 @@
 """Various utilities."""
 
 import functools
-import regex as re
 import sys
-from typing import (NamedTuple, Generic, TypeVar, Iterable, List, Tuple,
-                    Optional, T)
 
 import more_itertools
+import regex as re
+from typing import (Generic, Iterable, List, NamedTuple, Optional, T, Tuple,
+                    TypeVar)
 
 
 class Diff(NamedTuple("Diff", [("action", str), ("data", T)]), Generic[T]):

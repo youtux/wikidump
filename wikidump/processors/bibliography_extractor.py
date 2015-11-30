@@ -1,14 +1,15 @@
 """Extract sections which are to be considered bibliography."""
 import collections
-import functools
 import datetime
-from typing import NamedTuple, Iterable, Optional, Mapping, Iterator
+import functools
 
+import fuzzywuzzy.process
 import jsonable
 import more_itertools
-import fuzzywuzzy.process
 import mwxml
-from .. import utils, extractors, dumper, languages
+from typing import Iterable, Iterator, Mapping, NamedTuple, Optional
+
+from .. import dumper, extractors, languages, utils
 
 FUZZY_MATCH_CUTOFF = 91      # between 0, 100
 

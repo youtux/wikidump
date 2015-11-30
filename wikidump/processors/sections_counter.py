@@ -1,12 +1,12 @@
 """Count the number of sections per article and the section names."""
-import datetime
-from typing import Mapping
 import collections
+import datetime
 
-import mwxml
 import more_itertools
+import mwxml
+from typing import Mapping
 
-from .. import utils, extractors, dumper
+from .. import dumper, extractors, utils
 
 
 stats_template = '''

@@ -1,15 +1,15 @@
 """Main module that parses command line arguments."""
 import argparse
-import subprocess
 import codecs
 import os
-from typing import IO, Union, Optional
+import subprocess
 
 import mw.xml_dump
 import mwxml
 import pathlib
+from typing import IO, Optional, Union
 
-from . import utils, processors
+from . import processors, utils
 
 
 def open_xml_file(path: Union[str, IO]):

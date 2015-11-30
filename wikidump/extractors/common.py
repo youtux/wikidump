@@ -1,7 +1,6 @@
 """Classes for the extractors."""
 from typing import Generic, NamedTuple, T
 
-
 Identifier = NamedTuple("Identifier", [
     ('type', str),
     ('id', str),

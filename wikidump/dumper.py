@@ -1,8 +1,8 @@
 """Auxiliary funcitons to dump the data."""
-from typing import Optional, List
-
 import mako.runtime
 import mako.template
+from typing import List, Optional
+
 
 pages_revisions_template = '''
 <%!

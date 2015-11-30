@@ -3,9 +3,8 @@
 Regular expressions taken from `python-mwcites` by Aaron Halfaker.
 See https://github.com/mediawiki-utilities/python-mwcites
 """
-from typing import Iterator
-
 import regex as re
+from typing import Iterator
 
 from .common import CaptureResult, Identifier, Span
 

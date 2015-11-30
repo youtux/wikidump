@@ -1,13 +1,14 @@
 """Extract all the identifiers (doi, pubmed, isbn, arxiv).
 
 Also, keep a stats file that counts where the identifiers have been found."""
-from typing import Mapping, Iterable
 import collections
 import datetime
+
 import more_itertools
 import mwxml
+from typing import Iterable, Mapping
 
-from .. import utils, extractors, dumper
+from .. import dumper, extractors, utils
 
 features_template = '''
 <%!

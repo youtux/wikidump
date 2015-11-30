@@ -4,12 +4,11 @@ Code from `python-mwcites` by Aaron Halfaker.
 See https://github.com/mediawiki-utilities/python-mwcites
 """
 
-from typing import Iterator
-
-import regex as re
 from collections import defaultdict
 
+import regex as re
 from more_itertools import peekable
+from typing import Iterator
 
 from .common import CaptureResult, Identifier, Span
 
