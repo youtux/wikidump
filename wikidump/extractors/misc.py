@@ -3,17 +3,54 @@ import functools
 
 import regex
 from more_itertools import peekable
-from typing import Callable, Iterable, Iterator, List, NamedTuple, TypeVar
+from typing import Callable, Iterable, Iterator, List, TypeVar
 
 from . import arxiv, doi, isbn, pubmed
-from .. import languages
 from .common import CaptureResult, Span
 
-Section = NamedTuple('Section', [
-    ('name', str),
-    ('level', int),
-    ('body', str),
-])
+
+class Section:
+    """Section class."""
+    def __init__(self, name: str, level: int, body: str):
+        """Instantiate a section."""
+        self.name = name
+        self.level = level
+        self.body = body
+        self._full_body = None
+
+    @property
+    def is_preamble(self):
+        """Return True when this section is the preamble of the page."""
+        return self.level == 0
+
+    @property
+    def full_body(self) -> str:
+        """Get the full body of the section."""
+        if self._full_body is not None:
+            return self._full_body
+
+        if self.is_preamble:
+            full_body = self.body
+        else:
+            equals = ''.join('=' for _ in range(self.level))
+            full_body = '{equals}{name}{equals}\n{body}'.format(
+                equals=equals,
+                name=self.name,
+                body=self.body,
+            )
+        self._full_body = full_body
+        return full_body
+
+    def __repr__(self):
+        'Return a nicely formatted representation string'
+        template = '{class_name}(name={name!r}, level={level!r}, body={body!r}'
+        return template.format(
+            class_name=self.__class__.__name__,
+            name=self.name,
+            level=self.level,
+            body=self.body[:20],
+        )
+
 
 section_header_re = regex.compile(
     r'''^
@@ -53,18 +90,30 @@ def references(source: str) -> Iterator[CaptureResult[str]]:
         yield CaptureResult(match.group(0), Span(*match.span()))
 
 
-def sections(source: str) -> Iterator[CaptureResult[Section]]:
+def sections(source: str, include_preamble: bool=False) -> Iterator[CaptureResult[Section]]:
     """Return the sections found in the document."""
     section_header_matches = peekable(section_header_re.finditer(source))
+    if include_preamble:
+        try:
+            body_end = section_header_matches.peek().start()
+            body_end -= 1  # Don't include the newline before the next section
+        except StopIteration:
+            body_end = len(source)
+        preamble = Section(
+            name='',
+            level=0,
+            body=source[:body_end],
+        )
+        yield CaptureResult(preamble, Span(0, body_end))
+
     for match in section_header_matches:
         name = match.group('section_name')
         level = len(match.group('equals'))
 
         body_begin = match.end() + 1  # Don't include the newline after
         try:
-            body_end = (section_header_matches.peek().start()
-                        - 1  # Don't include the newline before
-                       )
+            body_end = section_header_matches.peek().start()
+            body_end -= 1  # Don't include the newline before the next section
         except StopIteration:
             body_end = len(source)
 
@@ -72,17 +121,9 @@ def sections(source: str) -> Iterator[CaptureResult[Section]]:
             name=name,
             level=level,
             body=source[body_begin:body_end],
-            # body="",
         )
 
         yield CaptureResult(section, Span(match.start(), body_end))
-
-
-@functools.lru_cache(maxsize=500)
-def is_secion_bibliography(section_name: str, language: str) -> bool:
-    """Check if a section name is a bibliography."""
-    bibliography_synonyms = languages.bibliography[language]
-    return section_name.strip().lower() in bibliography_synonyms
 
 
 # @functools.lru_cache(maxsize=10)
