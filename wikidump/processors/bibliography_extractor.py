@@ -129,7 +129,7 @@ Page = NamedTuple('Page', [
 # TODO: instead of comparing section_name to a bib synonym,
 # search all the possible bib synonyms in the section name
 @functools.lru_cache(maxsize=500)
-def is_section_bibliography(
+def is_bibliography(
         section_name: str,
         language: str,
         score_cutoff: int=FUZZY_MATCH_CUTOFF) -> bool:
@@ -164,7 +164,7 @@ def extract_revisions(
 
         bibliography_sections = list(
             section for section in sections
-            if is_section_bibliography(section.name, language)
+            if is_bibliography(section.name, language)
         )
 
         for section in bibliography_sections:

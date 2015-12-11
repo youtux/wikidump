@@ -3,12 +3,14 @@
 Also, keep a stats file that counts where the identifiers have been found."""
 import collections
 import datetime
+import functools
 
 import more_itertools
 import mwxml
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Callable
 
-from .. import dumper, extractors, utils
+from .. import dumper, extractors, utils, languages
+from . import bibliography_extractor
 
 features_template = '''
 <%!
@@ -87,13 +89,42 @@ Revision = collections.namedtuple('Revision', [
 ])
 
 
+def always_true(*args, **kwargs) -> bool:
+    """Return True."""
+    return True
+
+
+def is_section_bibliography(section, language):
+    return bibliography_extractor.is_bibliography(
+        section.name, language)
+
+
+def get_section_filter(args) -> Callable[[str, str], bool]:
+    """Parse the command line args and return the correct section filterer."""
+    if not args.filter_sections:
+        return always_true
+    elif args.filter_sections == 'bibliography':
+        if not args.language:
+            raise ValueError('--language argument not provided.')
+        return functools.partial(
+            is_section_bibliography,
+            language=args.language,
+        )
+    else:
+        msg = 'Requested seciton filter "{}" not implemented'.format(
+            args.filter_sections
+        )
+        raise NotImplementedError(msg)
+
+
 def IdentifierStatsDict():
-    """Returna new IdentifierStatsDict"""
+    """Return new IdentifierStatsDict."""
     return {
         'only_in_raw_text': 0,
         'only_in_tag_ref': 0,
         'only_in_template': 0,
         'in_tag_ref_and_template': 0,
+        'only_in_filtered_sections': 0,
     }
 
 
@@ -118,6 +149,8 @@ def identifier_appearance_stat_key(appearances: set) -> str:
         return 'only_in_template'
     elif 'references' in appearances:
         return 'only_in_tag_ref'
+    elif 'sections' in appearances:
+        return 'only_in_filtered_sections'
     else:
         return 'only_in_raw_text'
 
@@ -125,9 +158,13 @@ def identifier_appearance_stat_key(appearances: set) -> str:
 def extract_revisions(
         page: mwxml.Page,
         stats: Mapping,
-        only_last_revision: bool) -> Iterable[Revision]:
+        only_last_revision: bool,
+        section_filter: Callable[[extractors.misc.Section], bool]=always_true,
+        ) -> Iterable[Revision]:
     """Extract the identifiers from the revisions."""
     revisions = more_itertools.peekable(page)
+
+    stats_identifiers = stats['identifiers']
 
     prev_identifiers = set()
     for mw_revision in revisions:
@@ -139,6 +176,12 @@ def extract_revisions(
 
         text = utils.remove_comments(mw_revision.text or '')
 
+        sections_captures_filtered = list(
+            capture
+            for capture in extractors.sections(text, include_preamble=True)
+            if section_filter(capture.data)
+        )
+
         references_captures = list(extractors.references(text))
 
         templates_captures = list(extractors.templates(text))
@@ -146,34 +189,48 @@ def extract_revisions(
         identifiers_captures = list(extractors.pub_identifiers(text))
         identifiers = [identifier for identifier, _ in identifiers_captures]
 
-        for identifier, span in identifiers_captures:
-            appearances = where_appears(
-                span,
-                references=(span for _, span in references_captures),
-                templates=(span for _, span in templates_captures),
-            )
-            key_to_increment = identifier_appearance_stat_key(appearances)
+        # TODO: check if funziona
+        where = functools.partial(
+            where_appears,
+            references=[span for _, span in references_captures],
+            templates=[span for _, span in templates_captures],
+            sections=[span for _, span in sections_captures_filtered],
+        )
 
-            stats['identifiers']['global'][key_to_increment] += 1
+        identifiers_with_appearances = [
+            (identifier, where(span))
+            for identifier, span in identifiers_captures
+        ]
+
+        for identifier, appearances in identifiers_with_appearances:
+            key_to_increment = identifier_appearance_stat_key(appearances)
+            stats_identifiers['global'][key_to_increment] += 1
             if is_last_revision:
-                stats['identifiers']['last_revision'][key_to_increment] += 1
+                stats_identifiers['last_revision'][key_to_increment] += 1
+
+        identifiers_filtered = [
+            identifier
+            for identifier, appearances in identifiers_with_appearances
+            if 'sections' in appearances
+        ]
 
         yield Revision(
             id=mw_revision.id,
             user=mw_revision.user,
             timestamp=mw_revision.timestamp.to_json(),
             publication_identifiers_diff=utils.diff(prev_identifiers,
-                                                    identifiers),
+                                                    identifiers_filtered),
         )
 
         stats['performance']['revisions_analyzed'] += 1
-        prev_identifiers = identifiers
+        prev_identifiers = identifiers_filtered
 
 
 def extract_pages(
         dump: mwxml.Dump,
         stats: Mapping,
-        only_last_revision: bool,
+        only_last_revision: bool,  # TODO: default value to False
+        section_filter: Callable[[extractors.misc.Section], bool]=always_true,
         ) -> Iterable[Page]:
     """"Extract the pages from the dump."""
     for mw_page in dump:
@@ -188,6 +245,7 @@ def extract_pages(
             mw_page,
             stats=stats,
             only_last_revision=only_last_revision,
+            section_filter=section_filter,
         )
 
         yield Page(
@@ -210,6 +268,18 @@ pubmed).''',
         action='store_true',
         help='Consider only the last revision for each page.',
     )
+    parser.add_argument(
+        '--filter-sections',
+        choices={'bibliography'},
+        required=False,
+        help='Filter the section names to consider',
+    )
+    parser.add_argument(
+        '-l', '--language',
+        choices=languages.supported,
+        required=False,
+        help='The language of the dump.',
+    )
     parser.set_defaults(func=main)
 
 
@@ -230,10 +300,14 @@ def main(dump: mwxml.Dump,
             'last_revision': IdentifierStatsDict(),
         },
     }
+    print(args)
+
+    section_filter = get_section_filter(args)
     pages_generator = extract_pages(
         dump,
         stats=stats,
         only_last_revision=args.only_last_revision,
+        section_filter=section_filter,
     )
 
     with features_output_h:
