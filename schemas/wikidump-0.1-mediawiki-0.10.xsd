@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:mwd="http://github.com/youtux/wikidump/blob/master/schemas/wikidump-0.1-mediawiki-0.10/"
+    xmlns:mw="http://www.mediawiki.org/xml/export-0.10/"
+    targetNamespace="http://www.mediawiki.org/xml/export-0.10/"
+    elementFormDefault="qualified">
+
+    <redefine schemaLocation="./mediawiki-0.10.xsd">
+        <complexType name="RevisionType">
+            <complexContent>
+                <extension base="RevisionType">
+                    <sequence>
+                        <element name="sections" type="mw:SectionsType" minOccurs="0" />
+                    </sequence>
+                </extension>
+            </complexContent>
+        </complexType>
+    </redefine>
+
+    <!-- The section element has the name and level attributes, and may have the body of the section -->
+    <complexType name="SectionType">
+        <simpleContent>
+            <extension base="string">
+                <attribute name="name" type="string" />
+                <attribute name="level" type="positiveInteger" />
+            </extension>
+        </simpleContent>
+    </complexType>
+
+    <complexType name="SectionsType">
+        <sequence>
+            <element name="section" type="mw:SectionType" minOccurs="0" maxOccurs="unbounded" />
+        </sequence>
+    </complexType>
+
+</schema>
