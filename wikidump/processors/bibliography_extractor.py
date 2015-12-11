@@ -19,38 +19,68 @@ features_template = '''
     def groupby_action(diff):
         return groupby(diff, lambda d: d.action)
 %>
-<%def name="attribute_if_exists(name, text)" filter="trim">
+<%def name="element_if_exists(name, text)" filter="trim">
     % if text is not None:
-        ${name}="${text | x}"
+        <${name}>${text | x}</${name}>
     % endif
 </%def>
-<%def name="tag_user_if_exists(user)" filter="trim">
+<%def name="contributor_if_exists(user)" filter="trim">
     % if user:
-        <user ${attribute_if_exists('id', user.id)} ${attribute_if_exists('name', user.text)} />
+        <contributor>
+            % if user.id is not None:
+            ${element_if_exists('username', user.text)}
+            ${element_if_exists('id', user.id)}
+            % else:
+            ${element_if_exists('ip', user.text)}
+            % endif
+        </contributor>
     % endif
 </%def>
-<root>
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://github.com/youtux/wikidump/blob/master/schemas/wikidump-0.1-mediawiki-0.10.xsd" version="0.10" xml:lang="en">
+    <siteinfo>
+        <sitename>${siteinfo.name | x}</sitename>
+        <dbname>${siteinfo.dbname | x}</dbname>
+        <base>${siteinfo.base | x}</base>
+        <generator>${generator | x}</generator>
+        <case>${siteinfo.case | x}</case>
+        <namespaces>
+            % for namespace in siteinfo.namespaces:
+            <namespace key="${namespace.id | x}" case="${namespace.case | x}">${namespace.name | x}</namespace>
+            % endfor
+        </namespaces>
+    </siteinfo>
     % for page in pages:
     <page>
         <title>${page.title | x}</title>
+        <ns>${page.namespace | x}</ns>
         <id>${page.id | x}</id>
-        <revisions>
-            % for revision in page.revisions:
-            <revision>
-                <id>${revision.id | x}</id>
-                ${tag_user_if_exists(revision.user)}
-                <timestamp>${revision.timestamp | x}</timestamp>
-                <sections>
-                    % for section in revision.sections:
-                        <section name="${section.name | x}" level="${section.level | x}">${section.body | x}</section>
-                    % endfor
-                </sections>
-            </revision>
-            % endfor
-        </revisions>
+        % for revision in page.revisions:
+        <revision>
+            <id>${revision.id | x}</id>
+            % if revision.parent_id is not None:
+            <parentid>${revision.parent_id | x}</parentid>
+            % endif
+            <timestamp>${revision.timestamp | x}</timestamp>
+
+            ${contributor_if_exists(revision.user)}
+            % if revision.minor:
+            <minor />
+            % endif
+            <comment>${revision.comment | x}</comment>
+            <model>${revision.model | x}</model>
+            <format>${revision.format | x}</format>
+            <text xml:space="preserve">${revision.text | x}</text>
+            <sha1>dummy</sha1>
+            <sections>
+                % for section in revision.sections:
+                    <section name="${section.name | x}" level="${section.level | x}" />
+                % endfor
+            </sections>
+        </revision>
+        % endfor
     </page>
     % endfor
-</root>
+</mediawiki>
 '''
 
 stats_template = '''
@@ -75,15 +105,22 @@ stats_template = '''
 
 
 Revision = NamedTuple('Revision', [
-    ('id', str),
+    ('id', int),
+    ('parent_id', int),
     ('user', Optional[mwxml.Revision.User]),
+    ('minor', bool),
+    ('comment', str),
+    ('model', str),
+    ('format', str),
     ('timestamp', jsonable.Type),
-    ('sections', Iterable[extractors.misc.Section]),
+    ('text', str),
+    ('sections', Iterable[extractors.misc.Section])
 ])
 
 
 Page = NamedTuple('Page', [
     ('id', str),
+    ('namespace', int),
     ('title', str),
     ('revisions', Iterable[Revision]),
 ])
@@ -134,11 +171,19 @@ def extract_revisions(
             section_names_stats['global'][section.name] += 1
             if is_last_revision:
                 section_names_stats['last_revision'][section.name] += 1
+        # TODO: use section.fullbody
+        text = "".join(section.body for section in bibliography_sections)
 
         yield Revision(
             id=mw_revision.id,
+            parent_id=mw_revision.parent_id,
             user=mw_revision.user,
+            minor=mw_revision.minor,
+            comment=mw_revision.comment,
+            model=mw_revision.model,
+            format=mw_revision.format,
             timestamp=mw_revision.timestamp.to_json(),
+            text=text,
             sections=bibliography_sections,
         )
 
@@ -151,6 +196,7 @@ def extract_pages(
         stats: Mapping,
         only_last_revision: bool) -> Iterator[Page]:
     """Extract revisions from a page."""
+
     for mw_page in dump:
         utils.log("Processing", mw_page.title)
 
@@ -168,6 +214,7 @@ def extract_pages(
 
         yield Page(
             id=mw_page.id,
+            namespace=mw_page.namespace,
             title=mw_page.title,
             revisions=revisions_generator,
         )
@@ -212,6 +259,7 @@ def main(
             'last_revision': collections.Counter(),
         },
     }
+
     pages_generator = extract_pages(
         dump,
         language=args.language,
@@ -224,7 +272,9 @@ def main(
         dumper.render_template(
             features_template,
             output_handler=features_output_h,
+            siteinfo=dump.site_info,
             pages=pages_generator,
+            generator='youtux/wikidump',
         )
         stats['performance']['end_time'] = datetime.datetime.utcnow()
 
