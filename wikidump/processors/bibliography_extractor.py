@@ -26,14 +26,14 @@ features_template = '''
 </%def>
 <%def name="contributor_if_exists(user)" filter="trim">
     % if user:
-        <contributor>
+            <contributor>
             % if user.id is not None:
-            ${element_if_exists('username', user.text)}
-            ${element_if_exists('id', user.id)}
+                ${element_if_exists('username', user.text)}
+                ${element_if_exists('id', user.id)}
             % else:
-            ${element_if_exists('ip', user.text)}
+                ${element_if_exists('ip', user.text)}
             % endif
-        </contributor>
+            </contributor>
     % endif
 </%def>
 <mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://github.com/youtux/wikidump/blob/master/schemas/wikidump-0.1-mediawiki-0.10.xsd" version="0.10" xml:lang="en">
@@ -61,7 +61,6 @@ features_template = '''
             <parentid>${revision.parent_id | x}</parentid>
             % endif
             <timestamp>${revision.timestamp | x}</timestamp>
-
             ${contributor_if_exists(revision.user)}
             % if revision.minor:
             <minor />
@@ -196,7 +195,6 @@ def extract_pages(
         stats: Mapping,
         only_last_revision: bool) -> Iterator[Page]:
     """Extract revisions from a page."""
-
     for mw_page in dump:
         utils.log("Processing", mw_page.title)
 
