@@ -171,7 +171,7 @@ def extract_revisions(
             if is_last_revision:
                 section_names_stats['last_revision'][section.name] += 1
         # TODO: use section.fullbody
-        text = "".join(section.body for section in bibliography_sections)
+        text = "".join(section.full_body for section in bibliography_sections)
 
         yield Revision(
             id=mw_revision.id,
