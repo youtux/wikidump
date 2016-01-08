@@ -232,7 +232,7 @@ def main(dump: mwxml.Dump,
         added = 1
         removed = 2
 
-    conn = sqlite3.connect('identifiers.db')
+    conn = sqlite3.connect('identifiers.db', timeout=5*60)
     c = conn.cursor()
     # TODO: Add the project type (en, it, ...)
     c.executescript('''
