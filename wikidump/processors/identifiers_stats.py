@@ -5,6 +5,7 @@ Also, keep a stats file that counts where the identifiers have been found."""
 import collections
 import datetime
 import functools
+import itertools
 import sys
 
 import more_itertools
@@ -168,6 +169,46 @@ def identifiers_in_revision(mw_revision):
     ]
     return identifiers
 
+
+def mw_timestamp_to_datetime(ts):
+    timestamp = datetime.datetime.fromtimestamp(
+        ts.unix(),
+        datetime.timezone.utc,
+    )
+    return timestamp
+
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = itertools.tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
+
+def revisions_topology(revisions):
+    topology = networkx.DiGraph()
+    for revision in revisions:
+        timestamp = datetime.datetime.fromtimestamp(
+            revision.timestamp.unix(),
+            datetime.timezone.utc,
+        )
+        # if timestamp < datetime.datetime(2007,12,1, tzinfo=datetime.timezone.utc):
+        #     continue
+        # Much RAM is used. Maybe use some mechanism of string intern?
+        topology.add_node(
+            revision.id,
+            timestamp=timestamp,
+            # identifiers=identifiers_in_revision(revision),
+        )
+        topology.add_edge(revision.parent_id, revision.id)
+
+    return topology
+
+    # history_by_topological_sort = [
+    #     (revision_id, topology.node[revision_id]['timestamp'],  topology.node[revision_id]['identifiers'])
+    #     for revision_id in networkx.topological_sort(topology)
+    #     if revision_id is not None
+    # ]
+
 def main(dump: mwxml.Dump,
          features_output_h,
          stats_output_h,
@@ -184,7 +225,34 @@ def main(dump: mwxml.Dump,
     print(args)
     only_last_revision = args.only_last_revision
 
+    import sqlite3
+    import enum
+
+    class Action(enum.Enum):
+        added = 1
+        removed = 2
+
+    conn = sqlite3.connect('identifiers.db')
+    c = conn.cursor()
+    c.executescript('''
+
+-- Table: identifiers_history
+CREATE TABLE identifiers_history (identifier TEXT NOT NULL, "action" INTEGER NOT NULL, timestamp DATETIME NOT NULL, page_id INTEGER NOT NULL, revision_id INTEGER NOT NULL, PRIMARY KEY (identifier, "action", timestamp, page_id, revision_id));
+
+-- Index: timestamp_asc
+CREATE INDEX timestamp_asc ON identifiers_history (timestamp ASC);
+
+-- Index: identifier_asc
+CREATE INDEX identifier_asc ON identifiers_history (identifier ASC);
+
+-- Index: page_revision_asc
+CREATE INDEX page_revision_asc ON identifiers_history (page_id ASC, revision_id ASC);
+
+    ''')
+
     for mw_page in dump:
+        utils.log('Analyzing ', mw_page.title)
+
         revisions = more_itertools.peekable(mw_page)
 
         if only_last_revision:
@@ -193,31 +261,53 @@ def main(dump: mwxml.Dump,
                     continue
                 revisions = [revision]
 
-        topology = networkx.DiGraph()
-        for revision in revisions:
-            timestamp = datetime.datetime.fromtimestamp(
-                revision.timestamp.unix(),
-                datetime.timezone.utc,
-            )
-            # Much RAM is used. Maybe use some mechanism of string intern?
-            topology.add_node(
+        history = [
+            (
                 revision.id,
-                # timestamp=timestamp,
-                # identifiers=identifiers_in_revision(revision),
+                mw_timestamp_to_datetime(revision.timestamp),
+                identifiers_in_revision(revision),
             )
-            topology.add_edge(revision.parent_id, revision.id)
+            for revision in revisions
+        ]
 
-        if not networkx.is_weakly_connected(topology):
-            ipdb.set_trace()  ######### Break Point ###########
+        history.sort(key=lambda r: r[1])
 
-        assert networkx.is_weakly_connected(topology)
+        diff_history = []
 
+        history_with_empty_first = itertools.chain(
+            [(history[0][0], history[0][1], [])],
+            history,
+        )
 
-        # history = [
-        #     (revision_id, topology.node[revision_id]['timestamp'],  topology.node[revision_id]['identifiers'])
-        #     for revision_id in networkx.topological_sort(topology)
-        #     if revision_id is not None
-        # ]
+        for pair in pairwise(history_with_empty_first):
+            pair_identifiers = [el[2] for el in pair]
+            diff = utils.diff(*pair_identifiers)
+            val = (pair[1][0], pair[1][1], diff)
+            diff_history.append(val)
+
+        # import pickle
+        # pickle.dump(diff_history, 'autism-history')
+
+        identifiers_history = []
+        for rev_id, timestamp, diffs in diff_history:
+            for action, identifier in diffs:
+                identifiers_history.append((
+                    identifier.type + "_" + identifier.id,
+                    action,
+                    timestamp,
+                    mw_page.id,
+                    rev_id
+                ))
+
+        c.executemany(
+            'INSERT INTO identifiers_history VALUES (?,?,?,?,?)',
+            identifiers_history,
+        )
+
+        print("commit...")
+        conn.commit()
+
+    c.close()
 
 
 
