@@ -234,19 +234,20 @@ def main(dump: mwxml.Dump,
 
     conn = sqlite3.connect('identifiers.db')
     c = conn.cursor()
+    # TODO: Add the project type (en, it, ...)
     c.executescript('''
 
 -- Table: identifiers_history
-CREATE TABLE identifiers_history (identifier TEXT NOT NULL, "action" INTEGER NOT NULL, timestamp DATETIME NOT NULL, page_id INTEGER NOT NULL, revision_id INTEGER NOT NULL, PRIMARY KEY (identifier, "action", timestamp, page_id, revision_id));
+CREATE TABLE IF NOT EXISTS identifiers_history (identifier TEXT NOT NULL, "action" INTEGER NOT NULL, timestamp DATETIME NOT NULL, page_id INTEGER NOT NULL, revision_id INTEGER NOT NULL, PRIMARY KEY (identifier, "action", timestamp, page_id, revision_id));
 
 -- Index: timestamp_asc
-CREATE INDEX timestamp_asc ON identifiers_history (timestamp ASC);
+CREATE INDEX IF NOT EXISTS timestamp_asc ON identifiers_history (timestamp ASC);
 
 -- Index: identifier_asc
-CREATE INDEX identifier_asc ON identifiers_history (identifier ASC);
+CREATE INDEX IF NOT EXISTS identifier_asc ON identifiers_history (identifier ASC);
 
 -- Index: page_revision_asc
-CREATE INDEX page_revision_asc ON identifiers_history (page_id ASC, revision_id ASC);
+CREATE INDEX IF NOT EXISTS page_revision_asc ON identifiers_history (page_id ASC, revision_id ASC);
 
     ''')
 
