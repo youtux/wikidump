@@ -225,31 +225,9 @@ def main(dump: mwxml.Dump,
     print(args)
     only_last_revision = args.only_last_revision
 
-    import sqlite3
-    import enum
+    import csv
 
-    class Action(enum.Enum):
-        added = 1
-        removed = 2
-
-    conn = sqlite3.connect('identifiers.db', timeout=5*60)
-    c = conn.cursor()
-    # TODO: Add the project type (en, it, ...)
-    c.executescript('''
-
--- Table: identifiers_history
-CREATE TABLE IF NOT EXISTS identifiers_history (identifier TEXT NOT NULL, "action" INTEGER NOT NULL, timestamp DATETIME NOT NULL, page_id INTEGER NOT NULL, revision_id INTEGER NOT NULL, PRIMARY KEY (identifier, "action", timestamp, page_id, revision_id));
-
--- Index: timestamp_asc
-CREATE INDEX IF NOT EXISTS timestamp_asc ON identifiers_history (timestamp ASC);
-
--- Index: identifier_asc
-CREATE INDEX IF NOT EXISTS identifier_asc ON identifiers_history (identifier ASC);
-
--- Index: page_revision_asc
-CREATE INDEX IF NOT EXISTS page_revision_asc ON identifiers_history (page_id ASC, revision_id ASC);
-
-    ''')
+    writer = csv.writer(features_output_h)
 
     for mw_page in dump:
         utils.log('Analyzing ', mw_page.title)
@@ -286,40 +264,19 @@ CREATE INDEX IF NOT EXISTS page_revision_asc ON identifiers_history (page_id ASC
             val = (pair[1][0], pair[1][1], diff)
             diff_history.append(val)
 
-        # import pickle
-        # pickle.dump(diff_history, 'autism-history')
-
-        identifiers_history = []
         for rev_id, timestamp, diffs in diff_history:
             for action, identifier in diffs:
-                identifiers_history.append((
-                    identifier.type + "_" + identifier.id,
+                writer.writerow((
+                    identifier.type,
+                    identifier.id,
                     action,
                     timestamp,
                     mw_page.id,
-                    rev_id
+                    rev_id,
                 ))
 
-        c.executemany(
-            'INSERT INTO identifiers_history VALUES (?,?,?,?,?)',
-            identifiers_history,
-        )
+    features_output_h.close()
 
-        print("commit...")
-        conn.commit()
-
-    c.close()
-
-
-
-    # with features_output_h:
-    #     stats['performance']['start_time'] = datetime.datetime.utcnow()
-    #     dumper.render_template(
-    #         features_template,
-    #         output_handler=features_output_h,
-    #         pages=pages_generator,
-    #     )
-    #     stats['performance']['end_time'] = datetime.datetime.utcnow()
     #
     # with stats_output_h:
     #     dumper.render_template(
