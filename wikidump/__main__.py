@@ -84,7 +84,7 @@ def get_args():
     processors.identifiers_extractor.configure_subparsers(subparsers)
     processors.sections_counter.configure_subparsers(subparsers)
     processors.page_ids_extractor.configure_subparsers(subparsers)
-    processors.identifiers_stats.configure_subparsers(subparsers)
+    processors.identifiers_history_extractor.configure_subparsers(subparsers)
 
     parsed_args = parser.parse_args()
     if 'func' not in parsed_args:

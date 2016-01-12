@@ -3,5 +3,5 @@ from . import (
     identifiers_extractor,
     sections_counter,
     page_ids_extractor,
-    identifiers_stats,
+    identifiers_history_extractor,
 )
