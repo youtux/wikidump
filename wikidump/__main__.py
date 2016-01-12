@@ -4,6 +4,7 @@ import codecs
 import os
 import subprocess
 import gzip
+import io
 
 import mw.xml_dump
 import mwxml
@@ -29,9 +30,7 @@ def compressor_7z(file_path: str):
         stderr=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
     )
-    utf8writer = codecs.getwriter('utf-8')
-
-    return utf8writer(p.stdin)
+    return io.TextIOWrapper(p.stdin, encoding='utf-8')
 
 
 def output_writer(path: str, compression: Optional[str]):
