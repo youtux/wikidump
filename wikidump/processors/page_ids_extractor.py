@@ -13,6 +13,11 @@ def configure_subparsers(subparsers):
         'extract-page-ids',
         help='''Extract the page ids from the text.''',
     )
+    parser = parser.add_argument(
+        '--project', '-p',
+        required=True,
+        help='''Porject name (en, it, ...)''',
+    )
 
     parser.set_defaults(func=main)
 
@@ -24,9 +29,11 @@ def main(dump: mwxml.Dump,
     """Main function that parses the arguments and writes the output."""
     print(args)
 
+    project = args.project
+
     with features_output_h:
         csvwriter = csv.writer(features_output_h)
 
         for mw_page in dump:
             utils.log('Analyzing', mw_page.title)
-            csvwriter.writerow((mw_page.id, mw_page.title))
+            csvwriter.writerow((project, mw_page.id, mw_page.title))
