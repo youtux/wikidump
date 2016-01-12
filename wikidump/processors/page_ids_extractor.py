@@ -13,7 +13,7 @@ def configure_subparsers(subparsers):
         'extract-page-ids',
         help='''Extract the page ids from the text.''',
     )
-    parser = parser.add_argument(
+    parser.add_argument(
         '--project', '-p',
         required=True,
         help='''Porject name (en, it, ...)''',
