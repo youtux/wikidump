@@ -3,6 +3,7 @@ import argparse
 import codecs
 import os
 import subprocess
+import gzip
 
 import mw.xml_dump
 import mwxml
@@ -37,6 +38,8 @@ def output_writer(path: str, compression: Optional[str]):
     """Write data to a compressed file."""
     if compression == '7z':
         return compressor_7z(path + '.7z')
+    elif compression == 'gzip':
+        return gzip.open(path + '.gz', 'wt', encoding='utf-8')
     else:
         return open(path, 'wt', encoding='utf-8')
 
@@ -68,7 +71,7 @@ def get_args():
     )
     parser.add_argument(
         '--output-compression',
-        choices={None, '7z'},
+        choices={None, '7z', 'gzip'},
         required=False,
         default=None,
         help='Output compression format.',
