@@ -36,4 +36,9 @@ def main(dump: mwxml.Dump,
 
         for mw_page in dump:
             utils.log('Analyzing', mw_page.title)
+
+            if mw_page.namespace != 0:
+                utils.log('Skipped (namespace != 0)')
+                continue
+
             csvwriter.writerow((project, mw_page.id, mw_page.title))
