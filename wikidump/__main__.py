@@ -46,7 +46,8 @@ def output_writer(path: str, compression: Optional[str]):
 def create_path(path: Union[pathlib.Path, str]):
     """Create a path, which may or may not exist."""
     path = pathlib.Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.parent.exists():
+        path.parent.mkdir(parents=True)
 
 
 def get_args():
@@ -99,8 +100,9 @@ def get_args():
 def main():
     """Main function."""
     args = get_args()
-
-    args.output_dir_path.mkdir(parents=True, exist_ok=True)
+    
+    if not args.output_dir.exists():
+        args.output_dir_path.mkdir(parents=True)
 
     for input_file_path in args.files:
         utils.log("Analyzing {}...".format(input_file_path))
