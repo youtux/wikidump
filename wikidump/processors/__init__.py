@@ -4,4 +4,5 @@ from . import (
     sections_counter,
     page_ids_extractor,
     identifiers_history_extractor,
+    wikilink_extractor,
 )
