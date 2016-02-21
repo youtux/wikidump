@@ -101,7 +101,7 @@ def main():
     """Main function."""
     args = get_args()
     
-    if not args.output_dir.exists():
+    if not args.output_dir_path.exists():
         args.output_dir_path.mkdir(parents=True)
 
     for input_file_path in args.files:
