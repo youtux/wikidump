@@ -3,7 +3,7 @@ import functools
 
 import regex
 from more_itertools import peekable
-from typing import Callable, Iterable, Iterator, List, TypeVar
+from typing import Callable, Iterable, Iterator, List, TypeVar, NamedTuple
 
 from . import arxiv, doi, isbn, pubmed
 from .common import CaptureResult, Span
@@ -43,7 +43,8 @@ class Section:
 
     def __repr__(self):
         'Return a nicely formatted representation string'
-        template = '{class_name}(name={name!r}, level={level!r}, body={body!r}'
+        template = '{class_name}(name={name!r}, level={level!r}, '\
+            'body={body!r})'
         return template.format(
             class_name=self.__class__.__name__,
             name=self.name,
@@ -90,7 +91,8 @@ def references(source: str) -> Iterator[CaptureResult[str]]:
         yield CaptureResult(match.group(0), Span(*match.span()))
 
 
-def sections(source: str, include_preamble: bool=False) -> Iterator[CaptureResult[Section]]:
+def sections(source: str, include_preamble: bool=False) \
+        -> Iterator[CaptureResult[Section]]:
     """Return the sections found in the document."""
     section_header_matches = peekable(section_header_re.finditer(source))
     if include_preamble:
@@ -153,8 +155,11 @@ def templates(source: str) -> Iterator[CaptureResult[str]]:
     for match in templates_re.finditer(source):
         yield CaptureResult(match.group(0), Span(*match.span()))
 
+
 T = TypeVar('T')
 Extractor = Callable[[str], T]
+
+
 def pub_identifiers(source: str, extractors: Iterable[Extractor]=None) -> T:
     """Return all the identifiers found in the document."""
     if extractors is None:
@@ -167,3 +172,100 @@ def pub_identifiers(source: str, extractors: Iterable[Extractor]=None) -> T:
     for identifier_extractor in extractors:
         for capture in identifier_extractor(source):
             yield capture
+
+
+class Wikilink:
+    """Link class."""
+    def __init__(self,
+                 link: str,
+                 anchor: str,
+                 section_name: str,
+                 section_level: int,
+                 section_number: int):
+        """Instantiate a link."""
+        self.link = link
+        self.anchor = anchor
+        self.section_name = section_name
+        self.section_level = section_level
+        self.section_number = section_number
+
+    def __repr__(self):
+        'Return a nicely formatted representation string'
+        template = '{class_name}(link={link!r}, anchor={anchor!r})'
+        return template.format(
+            class_name=self.__class__.__name__,
+            link=self.link,
+            anchor=self.anchor,
+        )
+
+# See https://regex101.com/r/kF0yC9/1
+wikilink_re = regex.compile(
+    r'''\[\[                    # Match two opening brackets
+        (?P<link>               # <link>:
+            [^\|]*?             # Text inside link,
+                                # everything not a pipe, non-greedy
+        )
+        \|?                     # Match an optional pipe
+        (?P<anchor>             # <anchor>:
+            [^\|]*?             # Text inside anchor
+                                # everything not a pipe, non-greedy
+        )
+        \]\]                    # Match two closing brackets
+    ''', regex.VERBOSE | regex.MULTILINE)
+
+SectionLimits = NamedTuple('SectionLimits', [
+    ('name', str),
+    ('level', int),
+    ('number', int),
+    ('begin', int),
+    ('end', bool)
+])
+
+
+def wikilinks(source: str, sections: Iterator[CaptureResult[Section]]) \
+        -> Iterator[CaptureResult[Wikilink]]:
+    """Return the wikilinks found in the document."""
+    wikilink_matches = peekable(wikilink_re.finditer(source, concurrent=True))
+
+    sections_limits = [SectionLimits(name=section.name,
+                                     level=section.level,
+                                     number=idx,
+                                     begin=span.begin,
+                                     end=span.end)
+                       for idx, (section, span) in enumerate(sections, 1)]
+
+    last_section_seen = 0
+    for match in wikilink_matches:
+        link = match.group('link').strip()
+        anchor = match.group('anchor').strip()
+
+        link_start = match.start()
+
+        link_section_number = 0
+        link_section_name = '---~--- incipit ---~---'
+        link_section_level = 0
+
+        for section in sections_limits[last_section_seen:]:
+            if section.begin <= link_start <= section.end:
+                link_section_number = section.number
+                link_section_name = section.name
+                link_section_level = section.level
+                last_section_seen = (link_section_number - 1)\
+                    if link_section_number > 0 else 0
+                break
+
+        # For some reason if wikilink has no pipe, e.g. [[apple]] the regex
+        # above captures everything in the anchor group, so we need to set
+        # the link to the same page.
+        if (anchor and not link):
+            link = anchor
+
+        wikilink = Wikilink(
+            link=link,
+            anchor=anchor,
+            section_name=link_section_name,
+            section_level=link_section_level,
+            section_number=link_section_number
+        )
+
+        yield CaptureResult(wikilink, Span(link_start, match.end()))
