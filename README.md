@@ -1,6 +1,6 @@
 # wikidump
 
-Extract some information from MediaWiki XML dumps.
+Framework for the extraction of features from Wikipedia XML dumps.
 
 ## Installation
 This project has been tested with Python 3.5.0, but should also work with Python 3.4.3.
