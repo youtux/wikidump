@@ -198,20 +198,37 @@ class Wikilink:
             anchor=self.anchor,
         )
 
-# See https://regex101.com/r/kF0yC9/1
+# See https://regex101.com/r/kF0yC9/9
+# The text inside the 'link' group is title of the page, it is limited to 256
+# chars since it is the max supported by MediaWiki for page titles [1].
+# Furthermore pipes and brakets (|,[,]) are invalid characters for page
+# titles [2].
+# The anchor text allows pipes and closed brakets, but not open ones [3]
+# See:
+# [1] https://en.wikipedia.org/w/index.php?title=Wikipedia:Wikipedia_records\
+#    &oldid=709472636#Article_with_longest_title
+# [2] https://www.mediawiki.org/w/index.php?title=Manual:$wgLegalTitleChars\
+#    &oldid=1274292
+# [3] https://it.wikipedia.org/w/index.php?\
+#   title=Utente:CristianCantoro/Sandbox&oldid=79599623#Test_regexp
 wikilink_re = regex.compile(
-    r'''\[\[                    # Match two opening brackets
-        (?P<link>               # <link>:
-            [^\|]*?             # Text inside link,
-                                # everything not a pipe, non-greedy
-        )
-        \|?                     # Match an optional pipe
-        (?P<anchor>             # <anchor>:
-            [^\|]*?             # Text inside anchor
-                                # everything not a pipe, non-greedy
-        )
-        \]\]                    # Match two closing brackets
-    ''', regex.VERBOSE | regex.MULTILINE)
+    r'''\[\[                              # Match two opening brackets
+       (?P<link>                          # <link>:
+           [^\|\]\[\#\<\>\{\}]{0,256}     # Text inside link group
+                                          # everything not illegal, non-greedy
+                                          # can be empty or up to 256 chars
+       )
+       (?:                                # Non-capturing group
+          \|                              # Match a pipe
+          (?P<anchor>                     # <anchor>:
+              [^\[]*?                     # Test inside anchor group:
+                                          # match everything not an open braket
+                                          # - non greedy
+                                          # if empty the anchor text is link
+          )
+       )?                                 # anchor text is optional
+       \]\]                               # Match two closing brackets
+     ''', regex.VERBOSE | regex.MULTILINE)
 
 SectionLimits = NamedTuple('SectionLimits', [
     ('name', str),
@@ -236,8 +253,10 @@ def wikilinks(source: str, sections: Iterator[CaptureResult[Section]]) \
 
     last_section_seen = 0
     for match in wikilink_matches:
-        link = match.group('link').strip()
-        anchor = match.group('anchor').strip()
+        link = match.group('link') or ''
+        link = link.strip()
+        anchor = match.group('anchor') or link
+        anchor = anchor.strip()
 
         link_start = match.start()
 
