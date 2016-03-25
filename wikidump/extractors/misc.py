@@ -198,23 +198,25 @@ class Wikilink:
             anchor=self.anchor,
         )
 
-# See https://regex101.com/r/kF0yC9/9
+# See https://regex101.com/r/kF0yC9/12
 # The text inside the 'link' group is title of the page, it is limited to 256
 # chars since it is the max supported by MediaWiki for page titles [1].
 # Furthermore pipes and brakets (|,[,]) are invalid characters for page
-# titles [2].
-# The anchor text allows pipes and closed brakets, but not open ones [3]
+# titles [2]. Furthermore, newlines are not allowed [3].
+# The anchor text allows pipes and closed brakets, but not open ones [3],
+# newlines are allowed [3].
 # See:
 # [1] https://en.wikipedia.org/w/index.php?title=Wikipedia:Wikipedia_records\
 #    &oldid=709472636#Article_with_longest_title
 # [2] https://www.mediawiki.org/w/index.php?title=Manual:$wgLegalTitleChars\
 #    &oldid=1274292
 # [3] https://it.wikipedia.org/w/index.php?\
-#   title=Utente:CristianCantoro/Sandbox&oldid=79599623#Test_regexp
+#   title=Utente:CristianCantoro/Sandbox&oldid=79784393#Test_regexp
+
 wikilink_re = regex.compile(
     r'''\[\[                              # Match two opening brackets
        (?P<link>                          # <link>:
-           [^\|\]\[\#\<\>\{\}]{0,256}     # Text inside link group
+           [^\n\|\]\[\#\<\>\{\}]{0,256}   # Text inside link group
                                           # everything not illegal, non-greedy
                                           # can be empty or up to 256 chars
        )
@@ -256,7 +258,8 @@ def wikilinks(source: str, sections: Iterator[CaptureResult[Section]]) \
         link = match.group('link') or ''
         link = link.strip()
         anchor = match.group('anchor') or link
-        anchor = anchor.strip()
+        # newlines in anchor are visualized as spaces.
+        anchor = anchor.replace('\n', ' ').strip()
 
         link_start = match.start()
 
